@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  OFFICER
+  DISPATCHER
+  USER
+}
+
+enum OrgType {
+  POLICE
+  FIRE
+  AMBULANCE
+  DOJ
+  CUSTOM
+}
+
+enum UnitStatus {
+  AVAILABLE
+  BUSY
+  OFFDUTY
+  ONSCENE
+  ENROUTE
+  BREAK
+}
+
+enum IncidentStatus {
+  ACTIVE
+  PENDING
+  CLOSED
+  CANCELLED
+}
+
+enum ReportType {
+  INCIDENT
+  ARREST
+  WARRANT
+  MEDICAL
+  CUSTOM
+}
+
+enum WarrantStatus {
+  ACTIVE
+  EXPIRED
+  SERVED
+}
+
+model User {
+  id             String         @id @default(cuid())
+  username       String         @unique
+  email          String         @unique
+  password       String
+  citizenId      String?
+  steamId        String?
+  role           Role           @default(USER)
+  active         Boolean        @default(true)
+  organizationId String?
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+  units          Unit[]
+  reports        Report[]
+  incidentNotes  IncidentNote[]
+  warrants       Warrant[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Organization {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  type        OrgType
+  callsign    String
+  color       String     @default("#3b82f6")
+  description String?
+  active      Boolean    @default(true)
+  users       User[]
+  units       Unit[]
+  incidents   Incident[]
+  createdAt   DateTime   @default(now())
+}
+
+model Unit {
+  id             String       @id @default(cuid())
+  callsign       String
+  status         UnitStatus   @default(OFFDUTY)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  position       Json?
+  activeCallId   String?
+  incidentUnits  IncidentUnit[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Incident {
+  id             String         @id @default(cuid())
+  caseNumber     String         @unique
+  type           String
+  description    String
+  location       String
+  coordinates    Json?
+  status         IncidentStatus @default(PENDING)
+  priority       Int            @default(3)
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  units          IncidentUnit[]
+  reports        Report[]
+  notes          IncidentNote[]
+  createdById    String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  closedAt       DateTime?
+}
+
+model IncidentUnit {
+  id         String   @id @default(cuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  unitId     String
+  unit       Unit     @relation(fields: [unitId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@unique([incidentId, unitId])
+}
+
+model IncidentNote {
+  id         String   @id @default(cuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  content    String
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Report {
+  id         String     @id @default(cuid())
+  title      String
+  content    String     @db.Text
+  incidentId String?
+  incident   Incident?  @relation(fields: [incidentId], references: [id])
+  type       ReportType @default(INCIDENT)
+  authorId   String
+  author     User       @relation(fields: [authorId], references: [id])
+  pdfUrl     String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Citizen {
+  id          String    @id @default(cuid())
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime?
+  citizenId   String    @unique
+  gender      String?
+  phone       String?
+  address     String?
+  nationality String?
+  image       String?
+  notes       String?   @db.Text
+  vehicles    Vehicle[]
+  weapons     Weapon[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Vehicle {
+  id                 String    @id @default(cuid())
+  plate              String    @unique
+  model              String
+  color              String
+  ownerId            String
+  owner              Citizen   @relation(fields: [ownerId], references: [citizenId])
+  stolen             Boolean   @default(false)
+  flagged            Boolean   @default(false)
+  flagReason         String?
+  registrationExpiry DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model Warrant {
+  id          String        @id @default(cuid())
+  citizenName String
+  citizenId   String?
+  reason      String
+  charges     String        @db.Text
+  status      WarrantStatus @default(ACTIVE)
+  issuedById  String
+  issuedBy    User          @relation(fields: [issuedById], references: [id])
+  expiresAt   DateTime?
+  createdAt   DateTime      @default(now())
+}
+
+model Weapon {
+  id           String   @id @default(cuid())
+  serialNumber String   @unique
+  model        String
+  ownerId      String
+  owner        Citizen  @relation(fields: [ownerId], references: [citizenId])
+  licensed     Boolean  @default(false)
+  flagged      Boolean  @default(false)
+  flagReason   String?
+  createdAt    DateTime @default(now())
+}

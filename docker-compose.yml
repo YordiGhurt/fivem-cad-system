@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cad-postgres
+    environment:
+      POSTGRES_USER: cad_user
+      POSTGRES_PASSWORD: cad_password
+      POSTGRES_DB: cad_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cad_user -d cad_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cad-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cad-app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://cad_user:cad_password@postgres:5432/cad_db
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-this-secret}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-http://localhost:3000}
+      CAD_API_KEY: ${CAD_API_KEY:-change-this-api-key}
+    volumes:
+      - pdf_reports:/app/public/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  pdf_reports:
