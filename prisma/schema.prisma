@@ -53,58 +53,131 @@ enum WarrantStatus {
   SERVED
 }
 
+enum LawCategory {
+  CRIMINAL
+  CIVIL
+  TRAFFIC
+  ADMINISTRATIVE
+}
+
+enum VerdictType {
+  GUILTY
+  NOT_GUILTY
+  PLEA_DEAL
+  DISMISSED
+}
+
+enum ChargeStatus {
+  PENDING
+  ACTIVE
+  DISMISSED
+  SERVED
+}
+
+enum DeathCause {
+  NATURAL
+  ACCIDENT
+  HOMICIDE
+  SUICIDE
+  UNKNOWN
+}
+
+enum AdminLogAction {
+  USER_CREATED
+  USER_UPDATED
+  USER_BANNED
+  ORG_CREATED
+  ORG_UPDATED
+  PERMISSION_CHANGED
+  RANK_CREATED
+  RANK_UPDATED
+  DATA_DELETED
+  SYSTEM_CONFIG
+}
+
+enum CaseFileStatus {
+  OPEN
+  UNDER_REVIEW
+  CLOSED
+  ARCHIVED
+}
+
 model User {
-  id             String         @id @default(cuid())
-  username       String         @unique
-  email          String         @unique
-  password       String
-  citizenId      String?
-  steamId        String?
-  role           Role           @default(USER)
-  active         Boolean        @default(true)
-  organizationId String?
-  organization   Organization?  @relation(fields: [organizationId], references: [id])
-  rankId         String?
-  rank           OrgRank?       @relation(fields: [rankId], references: [id])
-  units          Unit[]
-  reports        Report[]
-  incidentNotes  IncidentNote[]
-  warrants       Warrant[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                 String             @id @default(cuid())
+  username           String             @unique
+  email              String             @unique
+  password           String
+  citizenId          String?
+  steamId            String?
+  role               Role               @default(USER)
+  active             Boolean            @default(true)
+  organizationId     String?
+  organization       Organization?      @relation(fields: [organizationId], references: [id])
+  rankId             String?
+  rank               OrgRank?           @relation(fields: [rankId], references: [id])
+  units              Unit[]
+  reports            Report[]
+  incidentNotes      IncidentNote[]
+  warrants           Warrant[]
+  lawsCreated        Law[]              @relation("LawCreatedBy")
+  verdictJudge       Verdict[]          @relation("VerdictJudge")
+  chargesIssued      Charge[]           @relation("ChargeIssuedBy")
+  caseFilesAssigned  CaseFile[]         @relation("CaseFileAssignedTo")
+  caseFilesCreated   CaseFile[]         @relation("CaseFileCreatedBy")
+  caseDocuments      CaseDocument[]     @relation("CaseDocumentAuthor")
+  deathCertificates  DeathCertificate[] @relation("DeathCertDoctor")
+  adminLogs          AdminLog[]         @relation("AdminLogPerformedBy")
+  medicalRecords     MedicalRecord[]    @relation("MedicalRecordAuthor")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 }
 
 model Organization {
-  id          String         @id @default(cuid())
-  name        String         @unique
-  type        OrgType
-  callsign    String
-  color       String         @default("#3b82f6")
-  description String?
-  active      Boolean        @default(true)
-  users       User[]
-  units       Unit[]
-  incidents   Incident[]
-  permissions OrgPermission?
-  ranks       OrgRank[]
-  createdAt   DateTime       @default(now())
+  id                String             @id @default(cuid())
+  name              String             @unique
+  type              OrgType
+  callsign          String
+  color             String             @default("#3b82f6")
+  description       String?
+  active            Boolean            @default(true)
+  users             User[]
+  units             Unit[]
+  incidents         Incident[]
+  permissions       OrgPermission?
+  ranks             OrgRank[]
+  deathCertificates DeathCertificate[]
+  medicalRecords    MedicalRecord[]
+  createdAt         DateTime           @default(now())
 }
 
 model OrgPermission {
-  id                 String       @id @default(cuid())
-  organizationId     String       @unique
-  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  canViewIncidents   Boolean      @default(true)
-  canCreateIncidents Boolean      @default(false)
-  canViewWarrants    Boolean      @default(false)
-  canCreateWarrants  Boolean      @default(false)
-  canViewReports     Boolean      @default(true)
-  canCreateReports   Boolean      @default(false)
-  canViewCitizens    Boolean      @default(false)
-  canViewVehicles    Boolean      @default(false)
-  canManageUnits     Boolean      @default(false)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id                      String       @id @default(cuid())
+  organizationId          String       @unique
+  organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  canViewIncidents        Boolean      @default(true)
+  canCreateIncidents      Boolean      @default(false)
+  canViewWarrants         Boolean      @default(false)
+  canCreateWarrants       Boolean      @default(false)
+  canViewReports          Boolean      @default(true)
+  canCreateReports        Boolean      @default(false)
+  canViewCitizens         Boolean      @default(false)
+  canViewVehicles         Boolean      @default(false)
+  canManageUnits          Boolean      @default(false)
+  canViewLaws             Boolean      @default(false)
+  canCreateLaws           Boolean      @default(false)
+  canViewVerdicts         Boolean      @default(false)
+  canCreateVerdicts       Boolean      @default(false)
+  canViewCharges          Boolean      @default(false)
+  canCreateCharges        Boolean      @default(false)
+  canViewCaseFiles        Boolean      @default(false)
+  canCreateCaseFiles      Boolean      @default(false)
+  canViewDeathCerts       Boolean      @default(false)
+  canCreateDeathCerts     Boolean      @default(false)
+  canViewMedicalRecords   Boolean      @default(false)
+  canCreateMedicalRecords Boolean      @default(false)
+  canViewAdminLog         Boolean      @default(false)
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
 }
 
 model OrgRank {
@@ -193,21 +266,26 @@ model Report {
 }
 
 model Citizen {
-  id          String    @id @default(cuid())
-  firstName   String
-  lastName    String
-  dateOfBirth DateTime?
-  citizenId   String    @unique
-  gender      String?
-  phone       String?
-  address     String?
-  nationality String?
-  image       String?
-  notes       String?   @db.Text
-  vehicles    Vehicle[]
-  weapons     Weapon[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                String             @id @default(cuid())
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime?
+  citizenId         String             @unique
+  gender            String?
+  phone             String?
+  address           String?
+  nationality       String?
+  image             String?
+  notes             String?            @db.Text
+  vehicles          Vehicle[]
+  weapons           Weapon[]
+  verdicts          Verdict[]
+  charges           Charge[]
+  caseFiles         CaseFile[]
+  deathCertificates DeathCertificate[]
+  medicalRecords    MedicalRecord[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model Vehicle {
@@ -248,4 +326,155 @@ model Weapon {
   flagged      Boolean  @default(false)
   flagReason   String?
   createdAt    DateTime @default(now())
+}
+
+// DOJ – Gesetze
+model Law {
+  id          String      @id @default(cuid())
+  code        String      @unique
+  title       String
+  description String      @db.Text
+  category    LawCategory
+  penalty     String?
+  fineAmount  Float?
+  jailTime    Int?
+  active      Boolean     @default(true)
+  createdById String
+  createdBy   User        @relation("LawCreatedBy", fields: [createdById], references: [id])
+  charges     Charge[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// DOJ – Urteile
+model Verdict {
+  id          String      @id @default(cuid())
+  caseNumber  String      @unique
+  citizenName String
+  citizenId   String?
+  citizen     Citizen?    @relation(fields: [citizenId], references: [citizenId])
+  type        VerdictType
+  sentence    String?     @db.Text
+  jailTime    Int?
+  fineAmount  Float?
+  judgeId     String
+  judge       User        @relation("VerdictJudge", fields: [judgeId], references: [id])
+  caseFileId  String?
+  caseFile    CaseFile?   @relation(fields: [caseFileId], references: [id])
+  charges     Charge[]
+  notes       String?     @db.Text
+  issuedAt    DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// LSPD/DOJ – Anklagen
+model Charge {
+  id          String       @id @default(cuid())
+  citizenName String
+  citizenId   String?
+  citizen     Citizen?     @relation(fields: [citizenId], references: [citizenId])
+  lawId       String?
+  law         Law?         @relation(fields: [lawId], references: [id])
+  description String       @db.Text
+  status      ChargeStatus @default(PENDING)
+  issuedById  String
+  issuedBy    User         @relation("ChargeIssuedBy", fields: [issuedById], references: [id])
+  verdictId   String?
+  verdict     Verdict?     @relation(fields: [verdictId], references: [id])
+  caseFileId  String?
+  caseFile    CaseFile?    @relation(fields: [caseFileId], references: [id])
+  incidentId  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// DOJ/LSPD – Parteiakten
+model CaseFile {
+  id           String         @id @default(cuid())
+  caseNumber   String         @unique
+  title        String
+  description  String         @db.Text
+  status       CaseFileStatus @default(OPEN)
+  citizenName  String?
+  citizenId    String?
+  citizen      Citizen?       @relation(fields: [citizenId], references: [citizenId])
+  assignedToId String?
+  assignedTo   User?          @relation("CaseFileAssignedTo", fields: [assignedToId], references: [id])
+  createdById  String
+  createdBy    User           @relation("CaseFileCreatedBy", fields: [createdById], references: [id])
+  charges      Charge[]
+  verdicts     Verdict[]
+  documents    CaseDocument[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  closedAt     DateTime?
+}
+
+// Dokumente zu Parteiakten
+model CaseDocument {
+  id         String   @id @default(cuid())
+  caseFileId String
+  caseFile   CaseFile @relation(fields: [caseFileId], references: [id], onDelete: Cascade)
+  title      String
+  content    String   @db.Text
+  fileUrl    String?
+  authorId   String
+  author     User     @relation("CaseDocumentAuthor", fields: [authorId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+// Ambulanz – Totenscheine
+model DeathCertificate {
+  id                String       @id @default(cuid())
+  certificateNumber String       @unique
+  deceasedName      String
+  citizenId         String?
+  citizen           Citizen?     @relation(fields: [citizenId], references: [citizenId])
+  dateOfDeath       DateTime
+  timeOfDeath       DateTime?
+  locationOfDeath   String
+  cause             DeathCause
+  causeDescription  String       @db.Text
+  doctorId          String
+  doctor            User         @relation("DeathCertDoctor", fields: [doctorId], references: [id])
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  additionalNotes   String?      @db.Text
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+// Admin-Log
+model AdminLog {
+  id            String         @id @default(cuid())
+  action        AdminLogAction
+  description   String
+  targetId      String?
+  targetType    String?
+  performedById String
+  performedBy   User           @relation("AdminLogPerformedBy", fields: [performedById], references: [id])
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+}
+
+// Medizinische Akte (Ambulanz)
+model MedicalRecord {
+  id             String       @id @default(cuid())
+  recordNumber   String       @unique
+  citizenName    String
+  citizenId      String?
+  citizen        Citizen?     @relation(fields: [citizenId], references: [citizenId])
+  diagnosis      String       @db.Text
+  treatment      String?      @db.Text
+  medications    String?      @db.Text
+  bloodType      String?
+  allergies      String?      @db.Text
+  authorId       String
+  author         User         @relation("MedicalRecordAuthor", fields: [authorId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  incidentId     String?
+  confidential   Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }

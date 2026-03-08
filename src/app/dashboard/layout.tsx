@@ -17,6 +17,12 @@ import {
   Settings,
   LogOut,
   Shield,
+  Scale,
+  Gavel,
+  FileSearch,
+  FolderOpen,
+  HeartPulse,
+  Stethoscope,
 } from 'lucide-react';
 
 interface OrgPermission {
@@ -26,6 +32,12 @@ interface OrgPermission {
   canViewCitizens: boolean;
   canViewVehicles: boolean;
   canManageUnits: boolean;
+  canViewLaws: boolean;
+  canViewVerdicts: boolean;
+  canViewCharges: boolean;
+  canViewCaseFiles: boolean;
+  canViewDeathCerts: boolean;
+  canViewMedicalRecords: boolean;
 }
 
 const navItems = [
@@ -36,6 +48,12 @@ const navItems = [
   { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car, permKey: 'canViewVehicles' as keyof OrgPermission },
   { href: '/dashboard/warrants', label: 'Haftbefehle', icon: FileWarning, permKey: 'canViewWarrants' as keyof OrgPermission },
   { href: '/dashboard/reports', label: 'Berichte', icon: FileText, permKey: 'canViewReports' as keyof OrgPermission },
+  { href: '/dashboard/laws', label: 'Gesetze', icon: Scale, permKey: 'canViewLaws' as keyof OrgPermission },
+  { href: '/dashboard/verdicts', label: 'Urteile', icon: Gavel, permKey: 'canViewVerdicts' as keyof OrgPermission },
+  { href: '/dashboard/charges', label: 'Anklagen', icon: FileSearch, permKey: 'canViewCharges' as keyof OrgPermission },
+  { href: '/dashboard/case-files', label: 'Parteiakten', icon: FolderOpen, permKey: 'canViewCaseFiles' as keyof OrgPermission },
+  { href: '/dashboard/death-certificates', label: 'Totenscheine', icon: HeartPulse, permKey: 'canViewDeathCerts' as keyof OrgPermission },
+  { href: '/dashboard/medical-records', label: 'Med. Akten', icon: Stethoscope, permKey: 'canViewMedicalRecords' as keyof OrgPermission },
   { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
   { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
 ];
