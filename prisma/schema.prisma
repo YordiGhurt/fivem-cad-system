@@ -64,6 +64,8 @@ model User {
   active         Boolean        @default(true)
   organizationId String?
   organization   Organization?  @relation(fields: [organizationId], references: [id])
+  rankId         String?
+  rank           OrgRank?       @relation(fields: [rankId], references: [id])
   units          Unit[]
   reports        Report[]
   incidentNotes  IncidentNote[]
@@ -73,17 +75,51 @@ model User {
 }
 
 model Organization {
-  id          String     @id @default(cuid())
-  name        String     @unique
+  id          String         @id @default(cuid())
+  name        String         @unique
   type        OrgType
   callsign    String
-  color       String     @default("#3b82f6")
+  color       String         @default("#3b82f6")
   description String?
-  active      Boolean    @default(true)
+  active      Boolean        @default(true)
   users       User[]
   units       Unit[]
   incidents   Incident[]
-  createdAt   DateTime   @default(now())
+  permissions OrgPermission?
+  ranks       OrgRank[]
+  createdAt   DateTime       @default(now())
+}
+
+model OrgPermission {
+  id                 String       @id @default(cuid())
+  organizationId     String       @unique
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  canViewIncidents   Boolean      @default(true)
+  canCreateIncidents Boolean      @default(false)
+  canViewWarrants    Boolean      @default(false)
+  canCreateWarrants  Boolean      @default(false)
+  canViewReports     Boolean      @default(true)
+  canCreateReports   Boolean      @default(false)
+  canViewCitizens    Boolean      @default(false)
+  canViewVehicles    Boolean      @default(false)
+  canManageUnits     Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model OrgRank {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  level          Int
+  color          String       @default("#94a3b8")
+  permissions    Json?
+  users          User[]
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, name])
+  @@unique([organizationId, level])
 }
 
 model Unit {

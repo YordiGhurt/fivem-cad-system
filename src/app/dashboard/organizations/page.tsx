@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import Link from 'next/link';
 
 const typeColors: Record<string, string> = {
   POLICE: 'bg-blue-500/20 text-blue-400',
@@ -31,9 +32,10 @@ export default async function OrganizationsPage() {
 
       <div className="grid grid-cols-2 gap-4">
         {organizations.map((org) => (
-          <div
+          <Link
             key={org.id}
-            className="bg-slate-900 border border-slate-800 rounded-xl p-5"
+            href={`/dashboard/organizations/${org.id}`}
+            className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 hover:bg-slate-800/50 transition-colors block"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -84,7 +86,7 @@ export default async function OrganizationsPage() {
                 <p className="text-slate-400 text-xs mt-0.5">Einsätze</p>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

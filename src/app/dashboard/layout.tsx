@@ -4,6 +4,7 @@ import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   AlertTriangle,
@@ -18,14 +19,23 @@ import {
   Shield,
 } from 'lucide-react';
 
+interface OrgPermission {
+  canViewIncidents: boolean;
+  canViewWarrants: boolean;
+  canViewReports: boolean;
+  canViewCitizens: boolean;
+  canViewVehicles: boolean;
+  canManageUnits: boolean;
+}
+
 const navItems = [
   { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
-  { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle },
-  { href: '/dashboard/units', label: 'Einheiten', icon: Radio },
-  { href: '/dashboard/citizens', label: 'Bürger', icon: Users },
-  { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car },
-  { href: '/dashboard/warrants', label: 'Haftbefehle', icon: FileWarning },
-  { href: '/dashboard/reports', label: 'Berichte', icon: FileText },
+  { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' as keyof OrgPermission },
+  { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' as keyof OrgPermission },
+  { href: '/dashboard/citizens', label: 'Bürger', icon: Users, permKey: 'canViewCitizens' as keyof OrgPermission },
+  { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car, permKey: 'canViewVehicles' as keyof OrgPermission },
+  { href: '/dashboard/warrants', label: 'Haftbefehle', icon: FileWarning, permKey: 'canViewWarrants' as keyof OrgPermission },
+  { href: '/dashboard/reports', label: 'Berichte', icon: FileText, permKey: 'canViewReports' as keyof OrgPermission },
   { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
   { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
 ];
@@ -33,8 +43,35 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const [orgPermissions, setOrgPermissions] = useState<OrgPermission | null>(null);
 
   const isAdmin = session?.user?.role === 'ADMIN';
+
+  useEffect(() => {
+    const orgId = session?.user?.organizationId;
+    if (!orgId) {
+      setOrgPermissions(null);
+      return;
+    }
+    fetch(`/api/organizations/${orgId}/permissions`)
+      .then((r) => r.json())
+      .then((d) => setOrgPermissions(d.data ?? null))
+      .catch(() => setOrgPermissions(null));
+  }, [session?.user?.organizationId]);
+
+  const isNavItemVisible = (item: (typeof navItems)[number]) => {
+    // Admin-only items
+    if ('adminOnly' in item && item.adminOnly && !isAdmin) return false;
+    // No permission key = always visible
+    if (!('permKey' in item) || !item.permKey) return true;
+    // ADMINs and SUPERVISORs bypass org-permission filtering
+    const role = session?.user?.role;
+    if (role === 'ADMIN' || role === 'SUPERVISOR') return true;
+    // No org or no permissions loaded yet → show all (graceful fallback)
+    if (!session?.user?.organizationId || orgPermissions === null) return true;
+    // Filter by org permission
+    return orgPermissions[item.permKey] !== false;
+  };
 
   return (
     <div className="flex h-screen bg-slate-950 overflow-hidden">
@@ -53,7 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            if (item.adminOnly && !isAdmin) return null;
+            if (!isNavItemVisible(item)) return null;
             const Icon = item.icon;
             const isActive =
               item.href === '/dashboard'
