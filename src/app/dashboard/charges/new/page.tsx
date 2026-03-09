@@ -1,8 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { RichTextEditor } from '@/components/RichTextEditor';
+
+interface Citizen {
+  id: string;
+  firstName: string;
+  lastName: string;
+  citizenId: string;
+}
+
+interface Incident {
+  id: string;
+  caseNumber: string;
+  type: string;
+}
+
+interface FineEntry {
+  id: string;
+  offense: string;
+  legalSection: string;
+  fineMin: number;
+  fineMax: number;
+  jailMin: number;
+  jailMax: number;
+  category: string;
+}
 
 export default function NewChargePage() {
   const router = useRouter();
@@ -15,8 +40,18 @@ export default function NewChargePage() {
     caseFileId: '',
     incidentId: '',
   });
+  const [citizens, setCitizens] = useState<Citizen[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [fineEntries, setFineEntries] = useState<FineEntry[]>([]);
+  const [fineHint, setFineHint] = useState<FineEntry | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/citizens?pageSize=200').then((r) => r.json()).then((d) => setCitizens(d.data ?? [])).catch(() => {});
+    fetch('/api/incidents?pageSize=200').then((r) => r.json()).then((d) => setIncidents(d.data ?? [])).catch(() => {});
+    fetch('/api/fine-catalog?pageSize=200').then((r) => r.json()).then((d) => setFineEntries(d.data ?? [])).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +105,26 @@ export default function NewChargePage() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Citizen dropdown */}
+          <div>
+            <label className={labelClass}>Bürger auswählen</label>
+            <select
+              className={inputClass}
+              value=""
+              onChange={(e) => {
+                const citizen = citizens.find((c) => c.id === e.target.value);
+                if (citizen) setForm({ ...form, citizenName: `${citizen.firstName} ${citizen.lastName}`, citizenId: citizen.citizenId });
+              }}
+            >
+              <option value="">— Bürger suchen —</option>
+              {citizens.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.firstName} {c.lastName} ({c.citizenId})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Name des Bürgers *</label>
@@ -92,15 +147,47 @@ export default function NewChargePage() {
             </div>
           </div>
 
+          {/* Fine catalog dropdown */}
+          {fineEntries.length > 0 && (
+            <div>
+              <label className={labelClass}>Aus Bußgeldkatalog</label>
+              <select
+                className={inputClass}
+                value=""
+                onChange={(e) => {
+                  const entry = fineEntries.find((f) => f.id === e.target.value);
+                  if (entry) {
+                    setFineHint(entry);
+                    setForm((f) => ({
+                      ...f,
+                      description: `${entry.offense} (${entry.legalSection})`,
+                    }));
+                  }
+                }}
+              >
+                <option value="">— Delikt auswählen —</option>
+                {fineEntries.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.offense} – {entry.legalSection}
+                  </option>
+                ))}
+              </select>
+              {fineHint && (
+                <div className="mt-2 bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-300">
+                  <span className="text-slate-400">Strafe: </span>
+                  ${fineHint.fineMin}–${fineHint.fineMax} |{' '}
+                  {fineHint.jailMin}–{fineHint.jailMax} Monate Haft
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className={labelClass}>Beschreibung *</label>
-            <textarea
-              className={inputClass + ' resize-none'}
-              rows={4}
+            <RichTextEditor
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(v) => setForm({ ...form, description: v })}
               placeholder="Anklagebeschreibung"
-              required
             />
           </div>
 
@@ -115,6 +202,23 @@ export default function NewChargePage() {
               <option value="ACTIVE">Aktiv</option>
               <option value="DISMISSED">Eingestellt</option>
               <option value="SERVED">Vollstreckt</option>
+            </select>
+          </div>
+
+          {/* Incident dropdown */}
+          <div>
+            <label className={labelClass}>Einsatz verknüpfen</label>
+            <select
+              className={inputClass}
+              value={form.incidentId}
+              onChange={(e) => setForm({ ...form, incidentId: e.target.value })}
+            >
+              <option value="">— Kein Einsatz —</option>
+              {incidents.map((inc) => (
+                <option key={inc.id} value={inc.id}>
+                  {inc.caseNumber} – {inc.type}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -137,16 +241,6 @@ export default function NewChargePage() {
                 placeholder="Optionale Verknüpfung"
               />
             </div>
-          </div>
-
-          <div>
-            <label className={labelClass}>Einsatz-ID</label>
-            <input
-              className={inputClass}
-              value={form.incidentId}
-              onChange={(e) => setForm({ ...form, incidentId: e.target.value })}
-              placeholder="Optionale Verknüpfung"
-            />
           </div>
 
           {error && (
@@ -175,3 +269,4 @@ export default function NewChargePage() {
     </div>
   );
 }
+

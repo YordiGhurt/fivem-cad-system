@@ -1,8 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+
+interface Citizen {
+  id: string;
+  firstName: string;
+  lastName: string;
+  citizenId: string;
+}
+
+interface Incident {
+  id: string;
+  caseNumber: string;
+  type: string;
+}
 
 export default function NewWarrantPage() {
   const router = useRouter();
@@ -12,9 +25,17 @@ export default function NewWarrantPage() {
     reason: '',
     charges: '',
     expiresAt: '',
+    incidentId: '',
   });
+  const [citizens, setCitizens] = useState<Citizen[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/citizens?pageSize=200').then((r) => r.json()).then((d) => setCitizens(d.data ?? [])).catch(() => {});
+    fetch('/api/incidents?pageSize=200').then((r) => r.json()).then((d) => setIncidents(d.data ?? [])).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +87,26 @@ export default function NewWarrantPage() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Citizen dropdown */}
+          <div>
+            <label className={labelClass}>Bürger auswählen</label>
+            <select
+              className={inputClass}
+              value=""
+              onChange={(e) => {
+                const citizen = citizens.find((c) => c.id === e.target.value);
+                if (citizen) setForm({ ...form, citizenName: `${citizen.firstName} ${citizen.lastName}`, citizenId: citizen.citizenId });
+              }}
+            >
+              <option value="">— Bürger suchen —</option>
+              {citizens.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.firstName} {c.lastName} ({c.citizenId})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Name des Bürgers *</label>
@@ -112,6 +153,23 @@ export default function NewWarrantPage() {
             />
           </div>
 
+          {/* Incident dropdown */}
+          <div>
+            <label className={labelClass}>Einsatz verknüpfen (optional)</label>
+            <select
+              className={inputClass}
+              value={form.incidentId}
+              onChange={(e) => setForm({ ...form, incidentId: e.target.value })}
+            >
+              <option value="">— Kein Einsatz —</option>
+              {incidents.map((inc) => (
+                <option key={inc.id} value={inc.id}>
+                  {inc.caseNumber} – {inc.type}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className={labelClass}>Ablaufdatum</label>
             <input
@@ -148,3 +206,4 @@ export default function NewWarrantPage() {
     </div>
   );
 }
+

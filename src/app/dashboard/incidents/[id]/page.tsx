@@ -100,9 +100,7 @@ export default async function IncidentDetailPage({
           {/* Description */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <h2 className="text-white font-semibold mb-3">Beschreibung</h2>
-            <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
-              {incident.description}
-            </p>
+            <div className="text-slate-300 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: incident.description }} />
           </div>
 
           {/* Notes */}

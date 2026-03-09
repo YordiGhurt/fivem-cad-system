@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 interface Organization {
   id: string;
@@ -122,13 +123,10 @@ export default function NewIncidentPage() {
 
           <div>
             <label className={labelClass}>Beschreibung *</label>
-            <textarea
-              className={inputClass + ' resize-none'}
-              rows={4}
+            <RichTextEditor
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(v) => setForm({ ...form, description: v })}
               placeholder="Einsatzbeschreibung"
-              required
             />
           </div>
 

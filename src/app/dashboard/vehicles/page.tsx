@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { PlateCheckButton } from './PlateCheckButton';
 
 interface SearchParams {
   search?: string;
@@ -56,6 +57,7 @@ export default async function VehiclesPage({
           <h1 className="text-2xl font-bold text-white">Fahrzeuge</h1>
           <p className="text-slate-400 text-sm mt-1">{total} Fahrzeuge gesamt</p>
         </div>
+        <PlateCheckButton />
       </div>
 
       {/* Filters */}

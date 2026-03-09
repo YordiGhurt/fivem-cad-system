@@ -3,11 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 interface Organization {
   id: string;
   name: string;
   callsign: string;
+}
+
+interface Citizen {
+  id: string;
+  firstName: string;
+  lastName: string;
+  citizenId: string;
 }
 
 export default function NewMedicalRecordPage() {
@@ -25,6 +33,7 @@ export default function NewMedicalRecordPage() {
     confidential: false,
   });
   const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [citizens, setCitizens] = useState<Citizen[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,6 +41,10 @@ export default function NewMedicalRecordPage() {
     fetch('/api/organizations')
       .then((r) => r.json())
       .then((d) => setOrgs(d.data ?? []))
+      .catch(() => {});
+    fetch('/api/citizens?pageSize=200')
+      .then((r) => r.json())
+      .then((d) => setCitizens(d.data ?? []))
       .catch(() => {});
   }, []);
 
@@ -90,6 +103,26 @@ export default function NewMedicalRecordPage() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Citizen dropdown */}
+          <div>
+            <label className={labelClass}>Bürger auswählen</label>
+            <select
+              className={inputClass}
+              value=""
+              onChange={(e) => {
+                const citizen = citizens.find((c) => c.id === e.target.value);
+                if (citizen) setForm({ ...form, citizenName: `${citizen.firstName} ${citizen.lastName}`, citizenId: citizen.citizenId });
+              }}
+            >
+              <option value="">— Bürger suchen —</option>
+              {citizens.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.firstName} {c.lastName} ({c.citizenId})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Name des Patienten *</label>
@@ -114,23 +147,18 @@ export default function NewMedicalRecordPage() {
 
           <div>
             <label className={labelClass}>Diagnose *</label>
-            <textarea
-              className={inputClass + ' resize-none'}
-              rows={3}
+            <RichTextEditor
               value={form.diagnosis}
-              onChange={(e) => setForm({ ...form, diagnosis: e.target.value })}
+              onChange={(v) => setForm({ ...form, diagnosis: v })}
               placeholder="Medizinische Diagnose"
-              required
             />
           </div>
 
           <div>
             <label className={labelClass}>Behandlung</label>
-            <textarea
-              className={inputClass + ' resize-none'}
-              rows={3}
+            <RichTextEditor
               value={form.treatment}
-              onChange={(e) => setForm({ ...form, treatment: e.target.value })}
+              onChange={(v) => setForm({ ...form, treatment: v })}
               placeholder="Durchgeführte Behandlung"
             />
           </div>

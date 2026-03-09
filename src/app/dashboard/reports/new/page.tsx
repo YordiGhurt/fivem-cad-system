@@ -1,8 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { RichTextEditor } from '@/components/RichTextEditor';
+
+interface Incident {
+  id: string;
+  caseNumber: string;
+  type: string;
+}
 
 export default function NewReportPage() {
   const router = useRouter();
@@ -12,8 +19,16 @@ export default function NewReportPage() {
     type: 'INCIDENT' as 'INCIDENT' | 'ARREST' | 'WARRANT' | 'MEDICAL' | 'CUSTOM',
     incidentId: '',
   });
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/incidents?pageSize=200')
+      .then((r) => r.json())
+      .then((d) => setIncidents(d.data ?? []))
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,24 +108,28 @@ export default function NewReportPage() {
 
           <div>
             <label className={labelClass}>Inhalt *</label>
-            <textarea
-              className={inputClass + ' resize-none'}
-              rows={8}
+            <RichTextEditor
               value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              onChange={(v) => setForm({ ...form, content: v })}
               placeholder="Berichtsinhalt"
-              required
+              minHeight="200px"
             />
           </div>
 
           <div>
-            <label className={labelClass}>Einsatz-ID</label>
-            <input
+            <label className={labelClass}>Einsatz verknüpfen</label>
+            <select
               className={inputClass}
               value={form.incidentId}
               onChange={(e) => setForm({ ...form, incidentId: e.target.value })}
-              placeholder="Optionale Verknüpfung mit einem Einsatz"
-            />
+            >
+              <option value="">— Kein Einsatz —</option>
+              {incidents.map((inc) => (
+                <option key={inc.id} value={inc.id}>
+                  {inc.caseNumber} – {inc.type}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && (
@@ -139,3 +158,4 @@ export default function NewReportPage() {
     </div>
   );
 }
+

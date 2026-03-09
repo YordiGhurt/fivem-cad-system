@@ -93,9 +93,7 @@ export function ReportDetailClient({ report }: ReportDetailClientProps) {
         <div className="col-span-2">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
             <h2 className="text-white font-semibold mb-4">Inhalt</h2>
-            <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
-              {report.content}
-            </div>
+            <div className="text-slate-300 text-sm leading-relaxed prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: report.content }} />
           </div>
         </div>
 

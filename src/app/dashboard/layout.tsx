@@ -23,6 +23,7 @@ import {
   FolderOpen,
   HeartPulse,
   Stethoscope,
+  BookOpen,
 } from 'lucide-react';
 
 interface OrgPermission {
@@ -54,6 +55,7 @@ const navItems = [
   { href: '/dashboard/case-files', label: 'Parteiakten', icon: FolderOpen, permKey: 'canViewCaseFiles' as keyof OrgPermission },
   { href: '/dashboard/death-certificates', label: 'Totenscheine', icon: HeartPulse, permKey: 'canViewDeathCerts' as keyof OrgPermission },
   { href: '/dashboard/medical-records', label: 'Med. Akten', icon: Stethoscope, permKey: 'canViewMedicalRecords' as keyof OrgPermission },
+  { href: '/dashboard/fine-catalog', label: 'Bußgeldkatalog', icon: BookOpen },
   { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
   { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
 ];
