@@ -52,6 +52,12 @@ export default async function CitizensPage({
           <h1 className="text-2xl font-bold text-white">Bürger</h1>
           <p className="text-slate-400 text-sm mt-1">{total} Bürger gesamt</p>
         </div>
+        <Link
+          href="/dashboard/citizens/new"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          + Neuer Bürger
+        </Link>
       </div>
 
       {/* Search */}
