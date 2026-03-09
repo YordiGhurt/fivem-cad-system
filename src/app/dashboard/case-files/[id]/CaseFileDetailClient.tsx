@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Trash2 } from 'lucide-react';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const statusLabels: Record<string, string> = {
   OPEN: 'Offen',
@@ -40,25 +39,9 @@ interface CaseFileDetailClientProps {
 }
 
 export function CaseFileDetailClient({ caseFile, isAdmin }: CaseFileDetailClientProps) {
-  const router = useRouter();
   const [pdfUrl, setPdfUrl] = useState(caseFile.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
-
-  async function handleDelete() {
-    if (!confirm('Wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
-    try {
-      const res = await fetch(`/api/case-files/${caseFile.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        router.push('/dashboard/case-files');
-      } else {
-        const json = await res.json().catch(() => ({}));
-        alert('Fehler beim Löschen: ' + (json.error ?? 'Unbekannter Fehler'));
-      }
-    } catch (err) {
-      alert('Fehler beim Löschen: ' + err);
-    }
-  }
 
   async function handleGeneratePDF() {
     setGenerating(true);
@@ -99,11 +82,11 @@ export function CaseFileDetailClient({ caseFile, isAdmin }: CaseFileDetailClient
         </div>
         <div className="flex gap-3">
           {isAdmin && (
-            <button onClick={handleDelete}
-              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors"
-              title="Löschen">
-              <Trash2 size={18} />
-            </button>
+            <DeleteButton
+              id={caseFile.id}
+              endpoint="/api/case-files"
+              redirectTo="/dashboard/case-files"
+            />
           )}
           {pdfUrl ? (
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
