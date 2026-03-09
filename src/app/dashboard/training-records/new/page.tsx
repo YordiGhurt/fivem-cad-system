@@ -158,8 +158,8 @@ export default function NewTrainingRecordPage() {
                 className={inputClass}
                 value={form.traineeId}
                 onChange={(e) => {
-                  const u = users.find((u) => u.id === e.target.value);
-                  setForm({ ...form, traineeId: e.target.value, traineeName: u ? u.username : form.traineeName });
+                  const found = users.find((user) => user.id === e.target.value);
+                  setForm({ ...form, traineeId: e.target.value, traineeName: found ? found.username : form.traineeName });
                 }}
               >
                 <option value="">— Optionaler Account —</option>
@@ -187,8 +187,8 @@ export default function NewTrainingRecordPage() {
                 className={inputClass}
                 value={form.trainerId}
                 onChange={(e) => {
-                  const u = users.find((u) => u.id === e.target.value);
-                  setForm({ ...form, trainerId: e.target.value, trainerName: u ? u.username : form.trainerName });
+                  const found = users.find((user) => user.id === e.target.value);
+                  setForm({ ...form, trainerId: e.target.value, trainerName: found ? found.username : form.trainerName });
                 }}
               >
                 <option value="">— Optionaler Account —</option>
