@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAdminLog } from '@/lib/adminLog';
 
 const permissionsSchema = z.object({
   canViewIncidents: z.boolean().optional(),
@@ -73,6 +74,8 @@ export async function PUT(
       update: data,
       create: { organizationId: id, ...data },
     });
+
+    await createAdminLog('PERMISSION_CHANGED', `Berechtigungen für Organisation ${id} geändert`, session.user.id, id, 'Organization');
 
     return NextResponse.json({ data: permissions });
   } catch (error) {

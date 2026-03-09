@@ -49,28 +49,72 @@ interface OrgPermission {
   canViewDispatchLog: boolean;
 }
 
-const navItems = [
-  { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
-  { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' as keyof OrgPermission },
-  { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' as keyof OrgPermission },
-  { href: '/dashboard/citizens', label: 'Bürger', icon: Users, permKey: 'canViewCitizens' as keyof OrgPermission },
-  { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car, permKey: 'canViewVehicles' as keyof OrgPermission },
-  { href: '/dashboard/warrants', label: 'Haftbefehle', icon: FileWarning, permKey: 'canViewWarrants' as keyof OrgPermission },
-  { href: '/dashboard/reports', label: 'Berichte', icon: FileText, permKey: 'canViewReports' as keyof OrgPermission },
-  { href: '/dashboard/laws', label: 'Gesetze', icon: Scale, permKey: 'canViewLaws' as keyof OrgPermission },
-  { href: '/dashboard/verdicts', label: 'Urteile', icon: Gavel, permKey: 'canViewVerdicts' as keyof OrgPermission },
-  { href: '/dashboard/charges', label: 'Anklagen', icon: FileSearch, permKey: 'canViewCharges' as keyof OrgPermission },
-  { href: '/dashboard/case-files', label: 'Parteiakten', icon: FolderOpen, permKey: 'canViewCaseFiles' as keyof OrgPermission },
-  { href: '/dashboard/death-certificates', label: 'Totenscheine', icon: HeartPulse, permKey: 'canViewDeathCerts' as keyof OrgPermission },
-  { href: '/dashboard/medical-records', label: 'Med. Akten', icon: Stethoscope, permKey: 'canViewMedicalRecords' as keyof OrgPermission },
-  { href: '/dashboard/fine-catalog', label: 'Bußgeldkatalog', icon: BookOpen },
-  { href: '/dashboard/org-news', label: 'Org-News', icon: Newspaper, permKey: 'canViewNews' as keyof OrgPermission },
-  { href: '/dashboard/org-warnings', label: 'Disziplinarakte', icon: AlertTriangle, permKey: 'canViewWarnings' as keyof OrgPermission },
-  { href: '/dashboard/training-records', label: 'Ausbildung', icon: GraduationCap, permKey: 'canViewTrainingRecords' as keyof OrgPermission },
-  { href: '/dashboard/dispatch-logs', label: 'Schichtbuch', icon: ClipboardList, permKey: 'canViewDispatchLog' as keyof OrgPermission },
-  { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
-  { href: '/dashboard/admin-log', label: 'Admin-Log', icon: ScrollText, supervisorOnly: true },
-  { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  permKey?: keyof OrgPermission;
+  adminOnly?: boolean;
+  supervisorOnly?: boolean;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
+  {
+    label: 'Dispatch',
+    items: [
+      { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
+      { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' },
+      { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' },
+    ],
+  },
+  {
+    label: 'Akten & Bürger',
+    items: [
+      { href: '/dashboard/citizens', label: 'Bürger', icon: Users, permKey: 'canViewCitizens' },
+      { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car, permKey: 'canViewVehicles' },
+      { href: '/dashboard/warrants', label: 'Haftbefehle', icon: FileWarning, permKey: 'canViewWarrants' },
+      { href: '/dashboard/reports', label: 'Berichte', icon: FileText, permKey: 'canViewReports' },
+      { href: '/dashboard/case-files', label: 'Parteiakten', icon: FolderOpen, permKey: 'canViewCaseFiles' },
+    ],
+  },
+  {
+    label: 'Justiz',
+    items: [
+      { href: '/dashboard/laws', label: 'Gesetze', icon: Scale, permKey: 'canViewLaws' },
+      { href: '/dashboard/fine-catalog', label: 'Bußgeldkatalog', icon: BookOpen },
+      { href: '/dashboard/verdicts', label: 'Urteile', icon: Gavel, permKey: 'canViewVerdicts' },
+      { href: '/dashboard/charges', label: 'Anklagen', icon: FileSearch, permKey: 'canViewCharges' },
+    ],
+  },
+  {
+    label: 'Medizin',
+    items: [
+      { href: '/dashboard/death-certificates', label: 'Totenscheine', icon: HeartPulse, permKey: 'canViewDeathCerts' },
+      { href: '/dashboard/medical-records', label: 'Med. Akten', icon: Stethoscope, permKey: 'canViewMedicalRecords' },
+    ],
+  },
+  {
+    label: 'Organisation',
+    items: [
+      { href: '/dashboard/org-news', label: 'Org-News', icon: Newspaper, permKey: 'canViewNews' },
+      { href: '/dashboard/org-warnings', label: 'Disziplinarakte', icon: AlertTriangle, permKey: 'canViewWarnings' },
+      { href: '/dashboard/training-records', label: 'Ausbildung', icon: GraduationCap, permKey: 'canViewTrainingRecords' },
+      { href: '/dashboard/dispatch-logs', label: 'Schichtbuch', icon: ClipboardList, permKey: 'canViewDispatchLog' },
+      { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
+    ],
+  },
+  {
+    label: 'Verwaltung',
+    items: [
+      { href: '/dashboard/admin-log', label: 'Admin-Log', icon: ScrollText, supervisorOnly: true },
+      { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
+    ],
+  },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -93,7 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .catch(() => setOrgPermissions(null));
   }, [session?.user?.organizationId]);
 
-  const isNavItemVisible = (item: (typeof navItems)[number]) => {
+  const isNavItemVisible = (item: NavItem) => {
     // Admin-only items
     if ('adminOnly' in item && item.adminOnly && !isAdmin) return false;
     // Supervisor-or-admin-only items
@@ -124,28 +168,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            if (!isNavItemVisible(item)) return null;
-            const Icon = item.icon;
-            const isActive =
-              item.href === '/dashboard'
-                ? pathname === '/dashboard'
-                : pathname.startsWith(item.href);
+        <nav className="flex-1 p-3 overflow-y-auto">
+          {navGroups.map((group, groupIdx) => {
+            const visibleItems = group.items.filter(isNavItemVisible);
+            if (visibleItems.length === 0) return null;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                )}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                {item.label}
-              </Link>
+              <div key={group.label}>
+                {groupIdx > 0 && <div className="my-1 border-t border-slate-800/60" />}
+                <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  {group.label}
+                </p>
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    item.href === '/dashboard'
+                      ? pathname === '/dashboard'
+                      : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800',
+                      )}
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>

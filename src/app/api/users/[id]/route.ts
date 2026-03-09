@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAdminLog } from '@/lib/adminLog';
 
 const patchSchema = z
   .object({
@@ -34,6 +35,8 @@ export async function PATCH(
       include: { organization: true },
     });
 
+    await createAdminLog('USER_UPDATED', `Benutzer "${user.username}" aktualisiert`, session.user.id, id, 'User');
+
     return NextResponse.json({ data: user });
   } catch (error) {
     console.error('[users/:id PATCH]', error);
@@ -60,7 +63,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
     }
 
+    const user = await prisma.user.findUnique({ where: { id } });
     await prisma.user.delete({ where: { id } });
+    await createAdminLog('USER_BANNED', `Benutzer "${user?.username ?? id}" gelöscht`, session.user.id, id, 'User');
 
     return NextResponse.json({ success: true });
   } catch (error) {
