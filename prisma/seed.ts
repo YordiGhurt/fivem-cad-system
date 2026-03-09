@@ -34,6 +34,20 @@ const allPermissionsTrue = {
   canCreateTrainingRecords: true,
   canViewDispatchLog: true,
   canCreateDispatchLog: true,
+  canDeleteIncidents: true,
+  canDeleteWarrants: true,
+  canDeleteReports: true,
+  canDeleteCitizens: true,
+  canDeleteLaws: true,
+  canDeleteVerdicts: true,
+  canDeleteCharges: true,
+  canDeleteCaseFiles: true,
+  canDeleteDeathCerts: true,
+  canDeleteMedicalRecords: true,
+  canDeleteNews: true,
+  canDeleteWarnings: true,
+  canDeleteTrainingRecords: true,
+  canDeleteDispatchLog: true,
 };
 
 async function main() {

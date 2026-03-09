@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { checkPermission } from '@/lib/permissions';
 import { z } from 'zod';
 
 const updateSchema = z.object({
@@ -69,7 +70,8 @@ export async function DELETE(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERVISOR') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const allowed = await checkPermission(session.user.organizationId, 'canDeleteDispatchLog');
+    if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const { id } = await params;

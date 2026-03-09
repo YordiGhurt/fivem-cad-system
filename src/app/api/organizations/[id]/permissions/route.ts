@@ -36,6 +36,20 @@ const permissionsSchema = z.object({
   canCreateTrainingRecords: z.boolean().optional(),
   canViewDispatchLog: z.boolean().optional(),
   canCreateDispatchLog: z.boolean().optional(),
+  canDeleteIncidents: z.boolean().optional(),
+  canDeleteWarrants: z.boolean().optional(),
+  canDeleteReports: z.boolean().optional(),
+  canDeleteCitizens: z.boolean().optional(),
+  canDeleteLaws: z.boolean().optional(),
+  canDeleteVerdicts: z.boolean().optional(),
+  canDeleteCharges: z.boolean().optional(),
+  canDeleteCaseFiles: z.boolean().optional(),
+  canDeleteDeathCerts: z.boolean().optional(),
+  canDeleteMedicalRecords: z.boolean().optional(),
+  canDeleteNews: z.boolean().optional(),
+  canDeleteWarnings: z.boolean().optional(),
+  canDeleteTrainingRecords: z.boolean().optional(),
+  canDeleteDispatchLog: z.boolean().optional(),
 });
 
 export async function GET(

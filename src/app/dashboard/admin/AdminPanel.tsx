@@ -50,6 +50,20 @@ export interface OrgPermission {
   canCreateTrainingRecords: boolean;
   canViewDispatchLog: boolean;
   canCreateDispatchLog: boolean;
+  canDeleteIncidents: boolean;
+  canDeleteWarrants: boolean;
+  canDeleteReports: boolean;
+  canDeleteCitizens: boolean;
+  canDeleteLaws: boolean;
+  canDeleteVerdicts: boolean;
+  canDeleteCharges: boolean;
+  canDeleteCaseFiles: boolean;
+  canDeleteDeathCerts: boolean;
+  canDeleteMedicalRecords: boolean;
+  canDeleteNews: boolean;
+  canDeleteWarnings: boolean;
+  canDeleteTrainingRecords: boolean;
+  canDeleteDispatchLog: boolean;
 }
 
 export interface OrgRank {
@@ -409,6 +423,25 @@ const permissionGroups: { label: string; keys: { key: keyof OrgPermission; label
       { key: 'canViewAdminLog', label: 'Admin-Log ansehen' },
     ],
   },
+  {
+    label: 'Löschen',
+    keys: [
+      { key: 'canDeleteIncidents', label: 'Einsätze löschen' },
+      { key: 'canDeleteWarrants', label: 'Haftbefehle löschen' },
+      { key: 'canDeleteReports', label: 'Berichte löschen' },
+      { key: 'canDeleteCitizens', label: 'Bürger löschen' },
+      { key: 'canDeleteLaws', label: 'Gesetze löschen' },
+      { key: 'canDeleteVerdicts', label: 'Urteile löschen' },
+      { key: 'canDeleteCharges', label: 'Anklagen löschen' },
+      { key: 'canDeleteCaseFiles', label: 'Parteiakten löschen' },
+      { key: 'canDeleteDeathCerts', label: 'Totenscheine löschen' },
+      { key: 'canDeleteMedicalRecords', label: 'Med. Akten löschen' },
+      { key: 'canDeleteNews', label: 'News löschen' },
+      { key: 'canDeleteWarnings', label: 'Disziplinarakten löschen' },
+      { key: 'canDeleteTrainingRecords', label: 'Ausbildungsakten löschen' },
+      { key: 'canDeleteDispatchLog', label: 'Schichtbuch-Einträge löschen' },
+    ],
+  },
 ];
 
 const permissionLabels: { key: keyof OrgPermission; label: string }[] = [
@@ -442,6 +475,20 @@ const permissionLabels: { key: keyof OrgPermission; label: string }[] = [
   { key: 'canCreateTrainingRecords', label: 'Ausbildungsakten erstellen' },
   { key: 'canViewDispatchLog', label: 'Schichtbuch ansehen' },
   { key: 'canCreateDispatchLog', label: 'Schichtbuch erstellen' },
+  { key: 'canDeleteIncidents', label: 'Einsätze löschen' },
+  { key: 'canDeleteWarrants', label: 'Haftbefehle löschen' },
+  { key: 'canDeleteReports', label: 'Berichte löschen' },
+  { key: 'canDeleteCitizens', label: 'Bürger löschen' },
+  { key: 'canDeleteLaws', label: 'Gesetze löschen' },
+  { key: 'canDeleteVerdicts', label: 'Urteile löschen' },
+  { key: 'canDeleteCharges', label: 'Anklagen löschen' },
+  { key: 'canDeleteCaseFiles', label: 'Parteiakten löschen' },
+  { key: 'canDeleteDeathCerts', label: 'Totenscheine löschen' },
+  { key: 'canDeleteMedicalRecords', label: 'Med. Akten löschen' },
+  { key: 'canDeleteNews', label: 'News löschen' },
+  { key: 'canDeleteWarnings', label: 'Disziplinarakten löschen' },
+  { key: 'canDeleteTrainingRecords', label: 'Ausbildungsakten löschen' },
+  { key: 'canDeleteDispatchLog', label: 'Schichtbuch-Einträge löschen' },
 ];
 
 const defaultPermissions: OrgPermission = {
@@ -475,6 +522,20 @@ const defaultPermissions: OrgPermission = {
   canCreateTrainingRecords: false,
   canViewDispatchLog: false,
   canCreateDispatchLog: false,
+  canDeleteIncidents: false,
+  canDeleteWarrants: false,
+  canDeleteReports: false,
+  canDeleteCitizens: false,
+  canDeleteLaws: false,
+  canDeleteVerdicts: false,
+  canDeleteCharges: false,
+  canDeleteCaseFiles: false,
+  canDeleteDeathCerts: false,
+  canDeleteMedicalRecords: false,
+  canDeleteNews: false,
+  canDeleteWarnings: false,
+  canDeleteTrainingRecords: false,
+  canDeleteDispatchLog: false,
 };
 
 function PermissionsModal({
