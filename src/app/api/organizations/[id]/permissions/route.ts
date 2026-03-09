@@ -14,6 +14,19 @@ const permissionsSchema = z.object({
   canViewCitizens: z.boolean().optional(),
   canViewVehicles: z.boolean().optional(),
   canManageUnits: z.boolean().optional(),
+  canViewLaws: z.boolean().optional(),
+  canCreateLaws: z.boolean().optional(),
+  canViewVerdicts: z.boolean().optional(),
+  canCreateVerdicts: z.boolean().optional(),
+  canViewCharges: z.boolean().optional(),
+  canCreateCharges: z.boolean().optional(),
+  canViewCaseFiles: z.boolean().optional(),
+  canCreateCaseFiles: z.boolean().optional(),
+  canViewDeathCerts: z.boolean().optional(),
+  canCreateDeathCerts: z.boolean().optional(),
+  canViewMedicalRecords: z.boolean().optional(),
+  canCreateMedicalRecords: z.boolean().optional(),
+  canViewAdminLog: z.boolean().optional(),
 });
 
 export async function GET(
