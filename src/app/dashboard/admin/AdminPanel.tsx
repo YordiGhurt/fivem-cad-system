@@ -343,6 +343,74 @@ function OrgFormModal({
 
 // ─── Permissions Modal ────────────────────────────────────────────────────────
 
+const permissionGroups: { label: string; keys: { key: keyof OrgPermission; label: string }[] }[] = [
+  {
+    label: 'Einsätze & Einheiten',
+    keys: [
+      { key: 'canViewIncidents', label: 'Einsätze ansehen' },
+      { key: 'canCreateIncidents', label: 'Einsätze erstellen' },
+      { key: 'canManageUnits', label: 'Einheiten verwalten' },
+    ],
+  },
+  {
+    label: 'Akten',
+    keys: [
+      { key: 'canViewReports', label: 'Berichte ansehen' },
+      { key: 'canCreateReports', label: 'Berichte erstellen' },
+      { key: 'canViewCaseFiles', label: 'Parteiakten ansehen' },
+      { key: 'canCreateCaseFiles', label: 'Parteiakten erstellen' },
+    ],
+  },
+  {
+    label: 'Justiz',
+    keys: [
+      { key: 'canViewWarrants', label: 'Haftbefehle ansehen' },
+      { key: 'canCreateWarrants', label: 'Haftbefehle erstellen' },
+      { key: 'canViewLaws', label: 'Gesetze ansehen' },
+      { key: 'canCreateLaws', label: 'Gesetze erstellen' },
+      { key: 'canViewVerdicts', label: 'Urteile ansehen' },
+      { key: 'canCreateVerdicts', label: 'Urteile erstellen' },
+      { key: 'canViewCharges', label: 'Anklagen ansehen' },
+      { key: 'canCreateCharges', label: 'Anklagen erstellen' },
+    ],
+  },
+  {
+    label: 'Bürger & Fahrzeuge',
+    keys: [
+      { key: 'canViewCitizens', label: 'Bürger ansehen' },
+      { key: 'canViewVehicles', label: 'Fahrzeuge ansehen' },
+    ],
+  },
+  {
+    label: 'Medizin',
+    keys: [
+      { key: 'canViewDeathCerts', label: 'Totenscheine ansehen' },
+      { key: 'canCreateDeathCerts', label: 'Totenscheine erstellen' },
+      { key: 'canViewMedicalRecords', label: 'Med. Akten ansehen' },
+      { key: 'canCreateMedicalRecords', label: 'Med. Akten erstellen' },
+    ],
+  },
+  {
+    label: 'Organisation',
+    keys: [
+      { key: 'canViewNews', label: 'News ansehen' },
+      { key: 'canCreateNews', label: 'News erstellen' },
+      { key: 'canViewWarnings', label: 'Disziplinarakten ansehen' },
+      { key: 'canCreateWarnings', label: 'Disziplinarakten erstellen' },
+      { key: 'canViewTrainingRecords', label: 'Ausbildungsakten ansehen' },
+      { key: 'canCreateTrainingRecords', label: 'Ausbildungsakten erstellen' },
+      { key: 'canViewDispatchLog', label: 'Schichtbuch ansehen' },
+      { key: 'canCreateDispatchLog', label: 'Schichtbuch erstellen' },
+    ],
+  },
+  {
+    label: 'Admin',
+    keys: [
+      { key: 'canViewAdminLog', label: 'Admin-Log ansehen' },
+    ],
+  },
+];
+
 const permissionLabels: { key: keyof OrgPermission; label: string }[] = [
   { key: 'canViewIncidents', label: 'Einsätze ansehen' },
   { key: 'canCreateIncidents', label: 'Einsätze erstellen' },
@@ -433,8 +501,9 @@ function PermissionsModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg">
-        <div className="flex items-center justify-between mb-5">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-slate-800 flex-shrink-0 flex items-center justify-between">
           <div>
             <h3 className="text-white font-semibold">Berechtigungen</h3>
             <p className="text-slate-400 text-xs mt-0.5">{org.name}</p>
@@ -443,29 +512,40 @@ function PermissionsModal({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-3 mb-6">
-            {permissionLabels.map(({ key, label }) => (
-              <label key={key} className="flex items-center justify-between cursor-pointer group">
-                <span className="text-slate-300 text-sm group-hover:text-white transition-colors">
-                  {label}
-                </span>
-                <div
-                  onClick={() => setPerms({ ...perms, [key]: !perms[key] })}
-                  className={`w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
-                    perms[key] ? 'bg-blue-600' : 'bg-slate-600'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      perms[key] ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+        {/* Scrollable content */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="p-6 overflow-y-auto flex-1">
+            {permissionGroups.map((group) => (
+              <div key={group.label} className="mb-5">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  {group.label}
+                </p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  {group.keys.map(({ key, label }) => (
+                    <label key={key} className="flex items-center justify-between cursor-pointer group">
+                      <span className="text-slate-300 text-sm group-hover:text-white transition-colors">
+                        {label}
+                      </span>
+                      <div
+                        onClick={() => setPerms({ ...perms, [key]: !perms[key] })}
+                        className={`w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
+                          perms[key] ? 'bg-blue-600' : 'bg-slate-600'
+                        }`}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                            perms[key] ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </div>
+                    </label>
+                  ))}
                 </div>
-              </label>
+              </div>
             ))}
           </div>
-          <div className="flex justify-end gap-3">
+          {/* Footer */}
+          <div className="p-6 border-t border-slate-800 flex-shrink-0 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { createAdminLog } from '@/lib/adminLog';
 
 const createSchema = z.object({
   username: z.string().min(1),
@@ -53,6 +54,8 @@ export async function POST(req: NextRequest) {
       },
       include: { organization: true },
     });
+
+    await createAdminLog('USER_CREATED', `Benutzer "${data.username}" erstellt`, session.user.id, user.id, 'User');
 
     return NextResponse.json({ data: user }, { status: 201 });
   } catch (error) {

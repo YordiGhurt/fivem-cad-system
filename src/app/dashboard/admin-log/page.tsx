@@ -133,6 +133,16 @@ export default async function AdminLogPage({
         </form>
       </div>
 
+      {/* Empty state info */}
+      {total === 0 && !action && !search && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <span className="text-blue-400 text-lg flex-shrink-0">ℹ️</span>
+          <p className="text-blue-300 text-sm">
+            Noch keine Admin-Aktionen protokolliert. Logs werden automatisch erstellt sobald Aktionen im System stattfinden.
+          </p>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <table className="w-full">

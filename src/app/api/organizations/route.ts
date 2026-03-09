@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAdminLog } from '@/lib/adminLog';
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
     const data = createSchema.parse(body);
 
     const org = await prisma.organization.create({ data });
+    await createAdminLog('ORG_CREATED', `Organisation "${org.name}" erstellt`, session.user.id, org.id, 'Organization');
     return NextResponse.json({ data: org }, { status: 201 });
   } catch (error) {
     console.error('[organizations POST]', error);

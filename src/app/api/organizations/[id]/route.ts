@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createAdminLog } from '@/lib/adminLog';
 
 const updateSchema = z
   .object({
@@ -51,6 +52,7 @@ export async function PUT(
     const data = updateSchema.parse(body);
 
     const org = await prisma.organization.update({ where: { id }, data });
+    await createAdminLog('ORG_UPDATED', `Organisation "${org.name}" aktualisiert`, session.user.id, id, 'Organization');
     return NextResponse.json({ data: org });
   } catch (error) {
     console.error('[organizations/:id PUT]', error);
@@ -71,7 +73,9 @@ export async function DELETE(
 
   try {
     const { id } = await params;
+    const org = await prisma.organization.findUnique({ where: { id } });
     await prisma.organization.delete({ where: { id } });
+    await createAdminLog('DATA_DELETED', `Organisation "${org?.name ?? id}" gelöscht`, session.user.id, id, 'Organization');
     return NextResponse.json({ message: 'Deleted' });
   } catch (error) {
     console.error('[organizations/:id DELETE]', error);
