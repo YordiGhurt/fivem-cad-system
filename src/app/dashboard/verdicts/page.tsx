@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const verdictTypeLabels: Record<string, string> = {
   GUILTY: 'Schuldig',
@@ -31,6 +32,7 @@ export default async function VerdictsPage({
 }) {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
+  const isAdmin = role === 'ADMIN';
   const canCreate = role === 'ADMIN' || role === 'SUPERVISOR';
 
   const sp = await searchParams;
@@ -127,12 +129,13 @@ export default async function VerdictsPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Geldstrafe</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Richter</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Datum</th>
+              {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {verdicts.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-slate-500">
                   Keine Urteile gefunden
                 </td>
               </tr>
@@ -154,6 +157,11 @@ export default async function VerdictsPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(verdict.issuedAt), 'dd.MM.yyyy HH:mm')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <DeleteButton id={verdict.id} endpoint="/api/verdicts" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

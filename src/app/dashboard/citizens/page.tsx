@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 interface SearchParams {
   search?: string;
@@ -14,7 +15,8 @@ export default async function CitizensPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const sp = await searchParams;
   const search = sp.search ?? '';
@@ -98,12 +100,13 @@ export default async function CitizensPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Adresse</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Fahrzeuge</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Waffen</th>
+              {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {citizens.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-slate-500">
                   Keine Bürger gefunden
                 </td>
               </tr>
@@ -137,6 +140,11 @@ export default async function CitizensPage({
                   <td className="px-4 py-3 text-slate-400 text-sm text-center">
                     {citizen._count.weapons}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <DeleteButton id={citizen.id} endpoint="/api/citizens" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

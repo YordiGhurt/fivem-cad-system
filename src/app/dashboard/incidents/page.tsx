@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'bg-red-500/20 text-red-400 border border-red-500/30',
@@ -30,7 +31,8 @@ export default async function IncidentsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const sp = await searchParams;
   const status = sp.status;
@@ -145,13 +147,14 @@ export default async function IncidentsPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">
                 Erstellt
               </th>
+              {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {incidents.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={isAdmin ? 9 : 8}
                   className="px-4 py-12 text-center text-slate-500"
                 >
                   Keine Einsätze gefunden
@@ -199,6 +202,11 @@ export default async function IncidentsPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(incident.createdAt), 'dd.MM.yyyy HH:mm')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <DeleteButton id={incident.id} endpoint="/api/incidents" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

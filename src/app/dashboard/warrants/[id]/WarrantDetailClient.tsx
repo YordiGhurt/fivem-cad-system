@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { Trash2 } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktiv',
@@ -28,12 +30,29 @@ interface WarrantDetailClientProps {
     expiresAt: Date | null;
     createdAt: Date;
   };
+  isAdmin?: boolean;
 }
 
-export function WarrantDetailClient({ warrant }: WarrantDetailClientProps) {
+export function WarrantDetailClient({ warrant, isAdmin }: WarrantDetailClientProps) {
+  const router = useRouter();
   const [pdfUrl, setPdfUrl] = useState(warrant.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
+
+  async function handleDelete() {
+    if (!confirm('Wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+    try {
+      const res = await fetch(`/api/warrants/${warrant.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/dashboard/warrants');
+      } else {
+        const json = await res.json().catch(() => ({}));
+        alert('Fehler beim Löschen: ' + (json.error ?? 'Unbekannter Fehler'));
+      }
+    } catch (err) {
+      alert('Fehler beim Löschen: ' + err);
+    }
+  }
 
   async function handleGeneratePDF() {
     setGenerating(true);
@@ -72,6 +91,13 @@ export function WarrantDetailClient({ warrant }: WarrantDetailClientProps) {
           {warrant.citizenId && <p className="text-slate-400 text-sm mt-1">ID: {warrant.citizenId}</p>}
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <button onClick={handleDelete}
+              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors"
+              title="Löschen">
+              <Trash2 size={18} />
+            </button>
+          )}
           {pdfUrl ? (
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">

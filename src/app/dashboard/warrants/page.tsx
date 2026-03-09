@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'bg-red-500/20 text-red-400 border border-red-500/30',
@@ -21,7 +22,8 @@ export default async function WarrantsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const sp = await searchParams;
   const status = sp.status;
@@ -116,12 +118,13 @@ export default async function WarrantsPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Ausgestellt von</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Läuft ab</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Erstellt</th>
+              {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {warrants.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 9 : 8} className="px-4 py-12 text-center text-slate-500">
                   Keine Haftbefehle gefunden
                 </td>
               </tr>
@@ -150,6 +153,11 @@ export default async function WarrantsPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(warrant.createdAt), 'dd.MM.yyyy HH:mm')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <DeleteButton id={warrant.id} endpoint="/api/warrants" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const typeColors: Record<string, string> = {
   INCIDENT: 'bg-blue-500/20 text-blue-400',
@@ -22,7 +23,8 @@ export default async function ReportsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const sp = await searchParams;
   const page = parseInt(sp.page ?? '1');
@@ -103,12 +105,13 @@ export default async function ReportsPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Einsatz</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">PDF</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Erstellt</th>
+              {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {reports.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 7 : 6} className="px-4 py-12 text-center text-slate-500">
                   Keine Berichte gefunden
                 </td>
               </tr>
@@ -158,6 +161,11 @@ export default async function ReportsPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(report.createdAt), 'dd.MM.yyyy HH:mm')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <DeleteButton id={report.id} endpoint="/api/reports" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}
