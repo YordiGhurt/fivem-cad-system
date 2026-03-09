@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -23,7 +24,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  if (!session) redirect('/login');
 
   const [activeIncidents, units] = await Promise.all([
     prisma.incident.findMany({
