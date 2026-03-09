@@ -196,7 +196,16 @@ export default function NewMedicalRecordPage() {
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <div
+                role="switch"
+                aria-checked={form.confidential}
+                tabIndex={0}
                 onClick={() => setForm({ ...form, confidential: !form.confidential })}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    setForm({ ...form, confidential: !form.confidential });
+                  }
+                }}
                 className={`w-10 h-5 rounded-full transition-colors cursor-pointer ${
                   form.confidential ? 'bg-red-500' : 'bg-slate-600'
                 }`}

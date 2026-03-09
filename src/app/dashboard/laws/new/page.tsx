@@ -162,7 +162,16 @@ export default function NewLawPage() {
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <div
+                role="switch"
+                aria-checked={form.active}
+                tabIndex={0}
                 onClick={() => setForm({ ...form, active: !form.active })}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    setForm({ ...form, active: !form.active });
+                  }
+                }}
                 className={`w-10 h-5 rounded-full transition-colors cursor-pointer ${
                   form.active ? 'bg-green-500' : 'bg-slate-600'
                 }`}
