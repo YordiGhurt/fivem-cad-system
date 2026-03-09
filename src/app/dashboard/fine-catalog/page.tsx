@@ -20,13 +20,14 @@ export default async function FineCatalogPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
 
   const sp = await searchParams;
   const category = sp.category;
   const search = sp.search ?? '';
   const page = parseInt(sp.page ?? '1');
   const pageSize = 30;
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const where: Record<string, unknown> = {};
   if (category) where.category = category;
@@ -56,12 +57,14 @@ export default async function FineCatalogPage({
           <h1 className="text-2xl font-bold text-white">Bußgeldkatalog</h1>
           <p className="text-slate-400 text-sm mt-1">{total} Einträge gesamt</p>
         </div>
-        <Link
-          href="/dashboard/fine-catalog/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          + Neuer Eintrag
-        </Link>
+        {isAdmin && (
+          <Link
+            href="/dashboard/fine-catalog/new"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            + Neuer Eintrag
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

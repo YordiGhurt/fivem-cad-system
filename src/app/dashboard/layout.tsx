@@ -27,6 +27,7 @@ import {
   Newspaper,
   GraduationCap,
   ClipboardList,
+  ScrollText,
 } from 'lucide-react';
 
 interface OrgPermission {
@@ -68,6 +69,7 @@ const navItems = [
   { href: '/dashboard/training-records', label: 'Ausbildung', icon: GraduationCap, permKey: 'canViewTrainingRecords' as keyof OrgPermission },
   { href: '/dashboard/dispatch-logs', label: 'Schichtbuch', icon: ClipboardList, permKey: 'canViewDispatchLog' as keyof OrgPermission },
   { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
+  { href: '/dashboard/admin-log', label: 'Admin-Log', icon: ScrollText, supervisorOnly: true },
   { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
 ];
 
@@ -77,6 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [orgPermissions, setOrgPermissions] = useState<OrgPermission | null>(null);
 
   const isAdmin = session?.user?.role === 'ADMIN';
+  const isSupervisor = session?.user?.role === 'SUPERVISOR';
 
   useEffect(() => {
     const orgId = session?.user?.organizationId;
@@ -93,6 +96,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isNavItemVisible = (item: (typeof navItems)[number]) => {
     // Admin-only items
     if ('adminOnly' in item && item.adminOnly && !isAdmin) return false;
+    // Supervisor-or-admin-only items
+    if ('supervisorOnly' in item && item.supervisorOnly && !isAdmin && !isSupervisor) return false;
     // No permission key = always visible
     if (!('permKey' in item) || !item.permKey) return true;
     // ADMINs and SUPERVISORs bypass org-permission filtering
