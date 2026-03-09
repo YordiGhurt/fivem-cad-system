@@ -10,18 +10,31 @@ export default async function CitizenDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
-
+  const session = await getServerSession(authOptions);
   const { id } = await params;
+
+  const canViewMedical = (session?.user as { orgPermissions?: { canViewMedicalRecords?: boolean } } | undefined)?.orgPermissions?.canViewMedicalRecords ?? false;
+
   const citizen = await prisma.citizen.findUnique({
     where: { id },
     include: {
       vehicles: { orderBy: { createdAt: 'desc' } },
       weapons: { orderBy: { createdAt: 'desc' } },
+      charges: { where: { status: { in: ['PENDING', 'ACTIVE'] } }, orderBy: { createdAt: 'desc' }, take: 5 },
+      verdicts: { orderBy: { issuedAt: 'desc' }, take: 5 },
+      caseFiles: { orderBy: { createdAt: 'desc' }, take: 5 },
+      medicalRecords: canViewMedical ? { orderBy: { createdAt: 'desc' }, take: 5 } : undefined,
     },
   });
 
   if (!citizen) notFound();
+
+  // Load warrants separately (no direct relation)
+  const warrants = await prisma.warrant.findMany({
+    where: { citizenId: citizen.citizenId, status: 'ACTIVE' },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
 
   return (
     <div className="p-6">
@@ -213,6 +226,86 @@ export default async function CitizenDetailPage({
             )}
           </div>
         </div>
+
+        {/* Warrants */}
+        {warrants.length > 0 && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h2 className="text-white font-semibold mb-3">Offene Haftbefehle ({warrants.length})</h2>
+            <div className="space-y-2">
+              {warrants.map((w) => (
+                <Link key={w.id} href={`/dashboard/warrants/${w.id}`}
+                  className="flex items-center justify-between p-3 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">
+                  <span className="text-white text-sm">{w.reason.slice(0, 60)}…</span>
+                  <span className="text-xs text-slate-400">{format(new Date(w.createdAt), 'dd.MM.yyyy')}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Charges */}
+        {citizen.charges && citizen.charges.length > 0 && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h2 className="text-white font-semibold mb-3">Aktive Anklagen ({citizen.charges.length})</h2>
+            <div className="space-y-2">
+              {citizen.charges.map((c) => (
+                <Link key={c.id} href={`/dashboard/charges/${c.id}`}
+                  className="flex items-center justify-between p-3 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">
+                  <span className="text-white text-sm">{c.description.replace(/<[^>]+>/g, '').slice(0, 60)}</span>
+                  <span className="text-xs text-slate-400">{c.status}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Verdicts */}
+        {citizen.verdicts && citizen.verdicts.length > 0 && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h2 className="text-white font-semibold mb-3">Urteile ({citizen.verdicts.length})</h2>
+            <div className="space-y-2">
+              {citizen.verdicts.map((v) => (
+                <Link key={v.id} href={`/dashboard/verdicts/${v.id}`}
+                  className="flex items-center justify-between p-3 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">
+                  <span className="text-white text-sm font-mono">{v.caseNumber}</span>
+                  <span className="text-xs text-slate-400">{v.type}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Case Files */}
+        {citizen.caseFiles && citizen.caseFiles.length > 0 && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h2 className="text-white font-semibold mb-3">Parteiakten ({citizen.caseFiles.length})</h2>
+            <div className="space-y-2">
+              {citizen.caseFiles.map((cf) => (
+                <Link key={cf.id} href={`/dashboard/case-files/${cf.id}`}
+                  className="flex items-center justify-between p-3 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">
+                  <span className="text-white text-sm">{cf.title}</span>
+                  <span className="text-xs text-slate-400 font-mono">{cf.caseNumber}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Medical Records */}
+        {canViewMedical && citizen.medicalRecords && citizen.medicalRecords.length > 0 && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h2 className="text-white font-semibold mb-3">Medizinische Akten ({citizen.medicalRecords.length})</h2>
+            <div className="space-y-2">
+              {citizen.medicalRecords.map((mr) => (
+                <Link key={mr.id} href={`/dashboard/medical-records/${mr.id}`}
+                  className="flex items-center justify-between p-3 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">
+                  <span className="text-white text-sm font-mono">{mr.recordNumber}</span>
+                  {mr.confidential && <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">VERTRAULICH</span>}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

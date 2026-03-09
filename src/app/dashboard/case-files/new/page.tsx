@@ -1,8 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { RichTextEditor } from '@/components/RichTextEditor';
+
+interface Citizen {
+  id: string;
+  firstName: string;
+  lastName: string;
+  citizenId: string;
+}
 
 export default function NewCaseFilePage() {
   const router = useRouter();
@@ -14,8 +22,13 @@ export default function NewCaseFilePage() {
     citizenId: '',
     assignedToId: '',
   });
+  const [citizens, setCitizens] = useState<Citizen[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/citizens?pageSize=200').then((r) => r.json()).then((d) => setCitizens(d.data ?? [])).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,13 +94,10 @@ export default function NewCaseFilePage() {
 
           <div>
             <label className={labelClass}>Beschreibung *</label>
-            <textarea
-              className={inputClass + ' resize-none'}
-              rows={4}
+            <RichTextEditor
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(v) => setForm({ ...form, description: v })}
               placeholder="Fallbeschreibung"
-              required
             />
           </div>
 
@@ -102,6 +112,26 @@ export default function NewCaseFilePage() {
               <option value="UNDER_REVIEW">In Prüfung</option>
               <option value="CLOSED">Geschlossen</option>
               <option value="ARCHIVED">Archiviert</option>
+            </select>
+          </div>
+
+          {/* Citizen dropdown */}
+          <div>
+            <label className={labelClass}>Bürger auswählen</label>
+            <select
+              className={inputClass}
+              value=""
+              onChange={(e) => {
+                const citizen = citizens.find((c) => c.id === e.target.value);
+                if (citizen) setForm({ ...form, citizenName: `${citizen.firstName} ${citizen.lastName}`, citizenId: citizen.citizenId });
+              }}
+            >
+              <option value="">— Bürger suchen —</option>
+              {citizens.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.firstName} {c.lastName} ({c.citizenId})
+                </option>
+              ))}
             </select>
           </div>
 
@@ -152,3 +182,4 @@ export default function NewCaseFilePage() {
     </div>
   );
 }
+

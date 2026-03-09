@@ -128,7 +128,11 @@ export default async function WarrantsPage({
             ) : (
               warrants.map((warrant) => (
                 <tr key={warrant.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 text-white font-medium">{warrant.citizenName}</td>
+                  <td className="px-4 py-3 text-white font-medium">
+                    <Link href={`/dashboard/warrants/${warrant.id}`} className="hover:text-blue-400 transition-colors">
+                      {warrant.citizenName}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-slate-400 text-sm font-mono">
                     {warrant.citizenId ?? '—'}
                   </td>

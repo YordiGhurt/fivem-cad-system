@@ -1,8 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { RichTextEditor } from '@/components/RichTextEditor';
+
+interface Citizen {
+  id: string;
+  firstName: string;
+  lastName: string;
+  citizenId: string;
+}
+
+interface CaseFile {
+  id: string;
+  caseNumber: string;
+  title: string;
+}
+
+interface Charge {
+  id: string;
+  citizenName: string;
+  citizenId: string | null;
+  caseFileId: string | null;
+  status: string;
+}
 
 export default function NewVerdictPage() {
   const router = useRouter();
@@ -16,8 +38,17 @@ export default function NewVerdictPage() {
     caseFileId: '',
     notes: '',
   });
+  const [citizens, setCitizens] = useState<Citizen[]>([]);
+  const [caseFiles, setCaseFiles] = useState<CaseFile[]>([]);
+  const [charges, setCharges] = useState<Charge[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/citizens?pageSize=200').then((r) => r.json()).then((d) => setCitizens(d.data ?? [])).catch(() => {});
+    fetch('/api/case-files?pageSize=200').then((r) => r.json()).then((d) => setCaseFiles(d.data ?? [])).catch(() => {});
+    fetch('/api/charges?pageSize=200&status=ACTIVE').then((r) => r.json()).then((d) => setCharges(d.data ?? [])).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +103,26 @@ export default function NewVerdictPage() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Citizen dropdown */}
+          <div>
+            <label className={labelClass}>Bürger auswählen</label>
+            <select
+              className={inputClass}
+              value=""
+              onChange={(e) => {
+                const citizen = citizens.find((c) => c.id === e.target.value);
+                if (citizen) setForm({ ...form, citizenName: `${citizen.firstName} ${citizen.lastName}`, citizenId: citizen.citizenId });
+              }}
+            >
+              <option value="">— Bürger suchen —</option>
+              {citizens.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.firstName} {c.lastName} ({c.citizenId})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Name des Bürgers *</label>
@@ -94,6 +145,35 @@ export default function NewVerdictPage() {
             </div>
           </div>
 
+          {/* Link existing charge */}
+          {charges.length > 0 && (
+            <div>
+              <label className={labelClass}>Vorhandene Anklage verknüpfen</label>
+              <select
+                className={inputClass}
+                value=""
+                onChange={(e) => {
+                  const charge = charges.find((c) => c.id === e.target.value);
+                  if (charge) {
+                    setForm((f) => ({
+                      ...f,
+                      citizenName: charge.citizenName,
+                      citizenId: charge.citizenId ?? f.citizenId,
+                      caseFileId: charge.caseFileId ?? f.caseFileId,
+                    }));
+                  }
+                }}
+              >
+                <option value="">— Anklage auswählen —</option>
+                {charges.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.citizenName} – {c.status}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className={labelClass}>Urteilstyp *</label>
             <select
@@ -110,11 +190,9 @@ export default function NewVerdictPage() {
 
           <div>
             <label className={labelClass}>Urteil / Strafe</label>
-            <textarea
-              className={inputClass + ' resize-none'}
-              rows={3}
+            <RichTextEditor
               value={form.sentence}
-              onChange={(e) => setForm({ ...form, sentence: e.target.value })}
+              onChange={(v) => setForm({ ...form, sentence: v })}
               placeholder="Beschreibung des Urteils"
             />
           </div>
@@ -145,23 +223,28 @@ export default function NewVerdictPage() {
             </div>
           </div>
 
+          {/* Case file dropdown */}
           <div>
-            <label className={labelClass}>Parteiakten-ID</label>
-            <input
+            <label className={labelClass}>Parteiakte verknüpfen</label>
+            <select
               className={inputClass}
               value={form.caseFileId}
               onChange={(e) => setForm({ ...form, caseFileId: e.target.value })}
-              placeholder="Optionale Verknüpfung"
-            />
+            >
+              <option value="">— Keine Parteiakte —</option>
+              {caseFiles.map((cf) => (
+                <option key={cf.id} value={cf.id}>
+                  {cf.caseNumber} – {cf.title}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
             <label className={labelClass}>Notizen</label>
-            <textarea
-              className={inputClass + ' resize-none'}
-              rows={3}
+            <RichTextEditor
               value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              onChange={(v) => setForm({ ...form, notes: v })}
               placeholder="Weitere Anmerkungen"
             />
           </div>
@@ -192,3 +275,4 @@ export default function NewVerdictPage() {
     </div>
   );
 }
+

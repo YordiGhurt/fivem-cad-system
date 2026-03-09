@@ -11,6 +11,7 @@ import {
   Layers,
   CheckCircle2,
   XCircle,
+  Shield,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ export interface OrgRank {
   name: string;
   level: number;
   color: string;
+  permissions?: Record<string, boolean> | null;
   createdAt: string;
 }
 
@@ -461,6 +463,101 @@ function PermissionsModal({
   );
 }
 
+// ─── Rank Permissions Modal ───────────────────────────────────────────────────
+
+function RankPermissionsModal({
+  orgId,
+  rank,
+  onClose,
+  onSave,
+  showToast,
+}: {
+  orgId: string;
+  rank: OrgRank;
+  onClose: () => void;
+  onSave: (updated: OrgRank) => void;
+  showToast: (msg: string, type: 'success' | 'error') => void;
+}) {
+  const [perms, setPerms] = useState<Record<string, boolean>>(
+    (rank.permissions as Record<string, boolean>) ?? {}
+  );
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/organizations/${orgId}/ranks/${rank.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions: perms }),
+      });
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+      onSave(data);
+    } catch {
+      showToast('Fehler beim Speichern der Berechtigungen', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-60">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-white font-semibold">Rang-Berechtigungen</h3>
+            <p className="text-slate-400 text-xs mt-0.5">{rank.name} (Lv. {rank.level})</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-3 mb-6">
+            {permissionLabels.map(({ key, label }) => (
+              <label key={key} className="flex items-center justify-between cursor-pointer group">
+                <span className="text-slate-300 text-sm group-hover:text-white transition-colors">
+                  {label}
+                </span>
+                <div
+                  onClick={() => setPerms({ ...perms, [key]: !perms[key] })}
+                  className={`w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
+                    perms[key] ? 'bg-blue-600' : 'bg-slate-600'
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                      perms[key] ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </div>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-white hover:bg-slate-800 px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              {saving ? 'Speichern…' : 'Speichern'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Ranks Modal ──────────────────────────────────────────────────────────────
 
 function RanksModal({
@@ -477,6 +574,7 @@ function RanksModal({
   const [showForm, setShowForm] = useState(false);
   const [newRank, setNewRank] = useState({ name: '', level: 1, color: '#94a3b8' });
   const [saving, setSaving] = useState(false);
+  const [rankPermsTarget, setRankPermsTarget] = useState<OrgRank | null>(null);
 
   useEffect(() => {
     fetch(`/api/organizations/${org.id}/ranks`)
@@ -551,12 +649,21 @@ function RanksModal({
                   <span className="text-white text-sm">{rank.name}</span>
                   <span className="text-slate-500 text-xs">Lv. {rank.level}</span>
                 </div>
-                <button
-                  onClick={() => handleDelete(rank.id)}
-                  className="text-slate-500 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setRankPermsTarget(rank)}
+                    title="Berechtigungen bearbeiten"
+                    className="text-slate-500 hover:text-blue-400 transition-colors"
+                  >
+                    <Shield className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(rank.id)}
+                    className="text-slate-500 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -639,6 +746,20 @@ function RanksModal({
           </button>
         </div>
       </div>
+
+      {rankPermsTarget && (
+        <RankPermissionsModal
+          orgId={org.id}
+          rank={rankPermsTarget}
+          onClose={() => setRankPermsTarget(null)}
+          onSave={(updatedRank) => {
+            setRanks((prev) => prev.map((r) => (r.id === updatedRank.id ? updatedRank : r)));
+            setRankPermsTarget(null);
+            showToast('Berechtigungen gespeichert', 'success');
+          }}
+          showToast={showToast}
+        />
+      )}
     </div>
   );
 }
