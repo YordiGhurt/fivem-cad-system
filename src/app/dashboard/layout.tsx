@@ -24,6 +24,9 @@ import {
   HeartPulse,
   Stethoscope,
   BookOpen,
+  Newspaper,
+  GraduationCap,
+  ClipboardList,
 } from 'lucide-react';
 
 interface OrgPermission {
@@ -39,6 +42,10 @@ interface OrgPermission {
   canViewCaseFiles: boolean;
   canViewDeathCerts: boolean;
   canViewMedicalRecords: boolean;
+  canViewNews: boolean;
+  canViewWarnings: boolean;
+  canViewTrainingRecords: boolean;
+  canViewDispatchLog: boolean;
 }
 
 const navItems = [
@@ -56,6 +63,10 @@ const navItems = [
   { href: '/dashboard/death-certificates', label: 'Totenscheine', icon: HeartPulse, permKey: 'canViewDeathCerts' as keyof OrgPermission },
   { href: '/dashboard/medical-records', label: 'Med. Akten', icon: Stethoscope, permKey: 'canViewMedicalRecords' as keyof OrgPermission },
   { href: '/dashboard/fine-catalog', label: 'Bußgeldkatalog', icon: BookOpen },
+  { href: '/dashboard/org-news', label: 'Org-News', icon: Newspaper, permKey: 'canViewNews' as keyof OrgPermission },
+  { href: '/dashboard/org-warnings', label: 'Disziplinarakte', icon: AlertTriangle, permKey: 'canViewWarnings' as keyof OrgPermission },
+  { href: '/dashboard/training-records', label: 'Ausbildung', icon: GraduationCap, permKey: 'canViewTrainingRecords' as keyof OrgPermission },
+  { href: '/dashboard/dispatch-logs', label: 'Schichtbuch', icon: ClipboardList, permKey: 'canViewDispatchLog' as keyof OrgPermission },
   { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
   { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
 ];
