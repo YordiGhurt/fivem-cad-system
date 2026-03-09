@@ -28,6 +28,19 @@ export interface OrgPermission {
   canViewCitizens: boolean;
   canViewVehicles: boolean;
   canManageUnits: boolean;
+  canViewLaws: boolean;
+  canCreateLaws: boolean;
+  canViewVerdicts: boolean;
+  canCreateVerdicts: boolean;
+  canViewCharges: boolean;
+  canCreateCharges: boolean;
+  canViewCaseFiles: boolean;
+  canCreateCaseFiles: boolean;
+  canViewDeathCerts: boolean;
+  canCreateDeathCerts: boolean;
+  canViewMedicalRecords: boolean;
+  canCreateMedicalRecords: boolean;
+  canViewAdminLog: boolean;
 }
 
 export interface OrgRank {
@@ -330,6 +343,19 @@ const permissionLabels: { key: keyof OrgPermission; label: string }[] = [
   { key: 'canViewCitizens', label: 'Bürger ansehen' },
   { key: 'canViewVehicles', label: 'Fahrzeuge ansehen' },
   { key: 'canManageUnits', label: 'Einheiten verwalten' },
+  { key: 'canViewLaws', label: 'Gesetze ansehen' },
+  { key: 'canCreateLaws', label: 'Gesetze erstellen' },
+  { key: 'canViewVerdicts', label: 'Urteile ansehen' },
+  { key: 'canCreateVerdicts', label: 'Urteile erstellen' },
+  { key: 'canViewCharges', label: 'Anklagen ansehen' },
+  { key: 'canCreateCharges', label: 'Anklagen erstellen' },
+  { key: 'canViewCaseFiles', label: 'Parteiakten ansehen' },
+  { key: 'canCreateCaseFiles', label: 'Parteiakten erstellen' },
+  { key: 'canViewDeathCerts', label: 'Totenscheine ansehen' },
+  { key: 'canCreateDeathCerts', label: 'Totenscheine erstellen' },
+  { key: 'canViewMedicalRecords', label: 'Med. Akten ansehen' },
+  { key: 'canCreateMedicalRecords', label: 'Med. Akten erstellen' },
+  { key: 'canViewAdminLog', label: 'Admin-Log ansehen' },
 ];
 
 const defaultPermissions: OrgPermission = {
@@ -342,6 +368,19 @@ const defaultPermissions: OrgPermission = {
   canViewCitizens: false,
   canViewVehicles: false,
   canManageUnits: false,
+  canViewLaws: false,
+  canCreateLaws: false,
+  canViewVerdicts: false,
+  canCreateVerdicts: false,
+  canViewCharges: false,
+  canCreateCharges: false,
+  canViewCaseFiles: false,
+  canCreateCaseFiles: false,
+  canViewDeathCerts: false,
+  canCreateDeathCerts: false,
+  canViewMedicalRecords: false,
+  canCreateMedicalRecords: false,
+  canViewAdminLog: false,
 };
 
 function PermissionsModal({
@@ -604,6 +643,141 @@ function RanksModal({
   );
 }
 
+// ─── User Form Modal ─────────────────────────────────────────────────────────
+
+interface UserFormData {
+  username: string;
+  email: string;
+  password: string;
+  role: Role;
+  organizationId: string | null;
+}
+
+function UserFormModal({
+  orgs,
+  onClose,
+  onSave,
+}: {
+  orgs: Organization[];
+  onClose: () => void;
+  onSave: (data: UserFormData) => Promise<void>;
+}) {
+  const [form, setForm] = useState<UserFormData>({
+    username: '',
+    email: '',
+    password: '',
+    role: 'USER',
+    organizationId: null,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-white font-semibold">Neuen Benutzer erstellen</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Benutzername</label>
+              <input
+                className={inputClass}
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelClass}>E-Mail</label>
+              <input
+                type="email"
+                className={inputClass}
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Passwort</label>
+            <input
+              type="password"
+              className={inputClass}
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              minLength={6}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Rolle</label>
+              <select
+                className={inputClass}
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+              >
+                {(['ADMIN', 'SUPERVISOR', 'OFFICER', 'DISPATCHER', 'USER'] as Role[]).map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Organisation</label>
+              <select
+                className={inputClass}
+                value={form.organizationId ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, organizationId: e.target.value || null })
+                }
+              >
+                <option value="">— Keine —</option>
+                {orgs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.callsign}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-white hover:bg-slate-800 px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              {saving ? 'Erstellen…' : 'Benutzer erstellen'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main AdminPanel ──────────────────────────────────────────────────────────
 
 export default function AdminPanel({
@@ -625,6 +799,10 @@ export default function AdminPanel({
     adminCount: users.filter((u) => u.role === 'ADMIN').length,
     orgCount: orgs.length,
   };
+
+  // ── User modals state ───────────────────────────────────────────────────────
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
   // ── Org modals state ────────────────────────────────────────────────────────
   const [createOrgOpen, setCreateOrgOpen] = useState(false);
@@ -710,6 +888,46 @@ export default function AdminPanel({
     [permOrg, showToast],
   );
 
+  // ── User CRUD handlers ──────────────────────────────────────────────────────
+  const handleCreateUser = useCallback(
+    async (data: {
+      username: string;
+      email: string;
+      password: string;
+      role: Role;
+      organizationId: string | null;
+    }) => {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        showToast(json.error ?? 'Fehler beim Erstellen des Benutzers', 'error');
+        return;
+      }
+      const { data: newUser } = await res.json();
+      setUsers((prev) => [newUser, ...prev]);
+      setCreateUserOpen(false);
+      showToast('Benutzer erstellt', 'success');
+    },
+    [showToast],
+  );
+
+  const handleDeleteUser = useCallback(async () => {
+    if (!deleteUser) return;
+    const res = await fetch(`/api/users/${deleteUser.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      showToast('Fehler beim Löschen des Benutzers', 'error');
+      setDeleteUser(null);
+      return;
+    }
+    setUsers((prev) => prev.filter((u) => u.id !== deleteUser.id));
+    setDeleteUser(null);
+    showToast('Benutzer gelöscht', 'success');
+  }, [deleteUser, showToast]);
+
   // ── User patch helper ───────────────────────────────────────────────────────
   const patchUser = useCallback(
     async (userId: string, patch: Partial<Pick<User, 'role' | 'active' | 'organizationId'>>) => {
@@ -753,8 +971,15 @@ export default function AdminPanel({
 
       {/* ── Users Table ───────────────────────────────────────────────────── */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mb-8">
-        <div className="px-5 py-4 border-b border-slate-800">
+        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <h2 className="text-white font-semibold">Benutzerverwaltung</h2>
+          <button
+            onClick={() => setCreateUserOpen(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Neuer Benutzer
+          </button>
         </div>
         <table className="w-full">
           <thead>
@@ -776,6 +1001,9 @@ export default function AdminPanel({
               </th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">
                 Erstellt
+              </th>
+              <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">
+                Aktionen
               </th>
             </tr>
           </thead>
@@ -838,6 +1066,15 @@ export default function AdminPanel({
                 </td>
                 <td className="px-4 py-3 text-slate-400 text-xs">
                   {format(new Date(user.createdAt), 'dd.MM.yyyy HH:mm')}
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => setDeleteUser(user)}
+                    title="Löschen"
+                    className="text-slate-400 hover:text-red-400 hover:bg-slate-800 p-1.5 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -948,6 +1185,20 @@ export default function AdminPanel({
       </div>
 
       {/* ── Modals ────────────────────────────────────────────────────────── */}
+      {createUserOpen && (
+        <UserFormModal
+          orgs={orgs}
+          onClose={() => setCreateUserOpen(false)}
+          onSave={handleCreateUser}
+        />
+      )}
+      {deleteUser && (
+        <ConfirmDialog
+          message={`Benutzer „${deleteUser.username}" wirklich löschen?`}
+          onConfirm={handleDeleteUser}
+          onCancel={() => setDeleteUser(null)}
+        />
+      )}
       {createOrgOpen && (
         <OrgFormModal onClose={() => setCreateOrgOpen(false)} onSave={handleCreateOrg} />
       )}

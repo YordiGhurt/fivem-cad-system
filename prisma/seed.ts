@@ -3,6 +3,31 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+const allPermissionsTrue = {
+  canViewIncidents: true,
+  canCreateIncidents: true,
+  canViewWarrants: true,
+  canCreateWarrants: true,
+  canViewReports: true,
+  canCreateReports: true,
+  canViewCitizens: true,
+  canViewVehicles: true,
+  canManageUnits: true,
+  canViewLaws: true,
+  canCreateLaws: true,
+  canViewVerdicts: true,
+  canCreateVerdicts: true,
+  canViewCharges: true,
+  canCreateCharges: true,
+  canViewCaseFiles: true,
+  canCreateCaseFiles: true,
+  canViewDeathCerts: true,
+  canCreateDeathCerts: true,
+  canViewMedicalRecords: true,
+  canCreateMedicalRecords: true,
+  canViewAdminLog: true,
+};
+
 async function main() {
   const police = await prisma.organization.upsert({
     where: { name: 'Los Santos Police Department' },
@@ -28,7 +53,7 @@ async function main() {
     },
   });
 
-  await prisma.organization.upsert({
+  const lsfd = await prisma.organization.upsert({
     where: { name: 'Los Santos Fire Department' },
     update: {},
     create: {
@@ -40,7 +65,7 @@ async function main() {
     },
   });
 
-  await prisma.organization.upsert({
+  const doj = await prisma.organization.upsert({
     where: { name: 'Department of Justice' },
     update: {},
     create: {
@@ -51,6 +76,15 @@ async function main() {
       description: 'Department of Justice',
     },
   });
+
+  // Ensure all organizations have full permissions
+  for (const org of [police, ems, lsfd, doj]) {
+    await prisma.orgPermission.upsert({
+      where: { organizationId: org.id },
+      update: allPermissionsTrue,
+      create: { organizationId: org.id, ...allPermissionsTrue },
+    });
+  }
 
   const hashedPassword = await bcrypt.hash('admin123', 12);
   await prisma.user.upsert({
@@ -90,9 +124,6 @@ async function main() {
       ownerId: citizen.citizenId,
     },
   });
-
-  // suppress unused variable warnings
-  void ems;
 
   console.log('Seed completed successfully');
 }
