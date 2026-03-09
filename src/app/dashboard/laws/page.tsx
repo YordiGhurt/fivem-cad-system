@@ -29,7 +29,8 @@ export default async function LawsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const sp = await searchParams;
   const category = sp.category;
@@ -66,12 +67,14 @@ export default async function LawsPage({
           <h1 className="text-2xl font-bold text-white">Gesetze</h1>
           <p className="text-slate-400 text-sm mt-1">{total} Gesetze gesamt</p>
         </div>
-        <Link
-          href="/dashboard/laws/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          + Neues Gesetz
-        </Link>
+        {isAdmin && (
+          <Link
+            href="/dashboard/laws/new"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            + Neues Gesetz
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

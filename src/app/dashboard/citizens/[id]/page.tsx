@@ -53,7 +53,11 @@ export default async function CitizenDetailPage({
             {citizen.firstName} {citizen.lastName}
           </h1>
           <p className="text-slate-400 font-mono text-sm mt-1">{citizen.citizenId}</p>
+          <p className="text-slate-500 text-xs mt-1">⚡ Automatisch synchronisiert – manuelle Änderungen nicht möglich</p>
         </div>
+        <span className="text-xs bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1.5 rounded-full font-medium">
+          🔒 Nur-Lese-Ansicht
+        </span>
       </div>
 
       <div className="grid grid-cols-3 gap-6">

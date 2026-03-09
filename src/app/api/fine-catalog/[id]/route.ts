@@ -31,50 +31,10 @@ export async function GET(
   return NextResponse.json({ data: entry });
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const { id } = await params;
-  try {
-    const body = await req.json();
-    const data = updateSchema.parse(body);
-
-    const entry = await prisma.fineEntry.update({ where: { id }, data });
-    return NextResponse.json({ data: entry });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 });
-    }
-    console.error('[fine-catalog/:id PUT]', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
+export async function PUT() {
+  return NextResponse.json({ error: 'Bußgeldkatalog-Einträge können nicht bearbeitet werden – deaktivieren und neu erstellen' }, { status: 405 });
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const { id } = await params;
-  try {
-    await prisma.fineEntry.delete({ where: { id } });
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('[fine-catalog/:id DELETE]', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
+export async function DELETE() {
+  return NextResponse.json({ error: 'Bußgeldkatalog-Einträge können nicht gelöscht werden' }, { status: 405 });
 }
