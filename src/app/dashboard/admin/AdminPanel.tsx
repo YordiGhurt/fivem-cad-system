@@ -42,6 +42,14 @@ export interface OrgPermission {
   canViewMedicalRecords: boolean;
   canCreateMedicalRecords: boolean;
   canViewAdminLog: boolean;
+  canViewNews: boolean;
+  canCreateNews: boolean;
+  canViewWarnings: boolean;
+  canCreateWarnings: boolean;
+  canViewTrainingRecords: boolean;
+  canCreateTrainingRecords: boolean;
+  canViewDispatchLog: boolean;
+  canCreateDispatchLog: boolean;
 }
 
 export interface OrgRank {
@@ -358,6 +366,14 @@ const permissionLabels: { key: keyof OrgPermission; label: string }[] = [
   { key: 'canViewMedicalRecords', label: 'Med. Akten ansehen' },
   { key: 'canCreateMedicalRecords', label: 'Med. Akten erstellen' },
   { key: 'canViewAdminLog', label: 'Admin-Log ansehen' },
+  { key: 'canViewNews', label: 'News ansehen' },
+  { key: 'canCreateNews', label: 'News erstellen' },
+  { key: 'canViewWarnings', label: 'Disziplinarakten ansehen' },
+  { key: 'canCreateWarnings', label: 'Disziplinarakten erstellen' },
+  { key: 'canViewTrainingRecords', label: 'Ausbildungsakten ansehen' },
+  { key: 'canCreateTrainingRecords', label: 'Ausbildungsakten erstellen' },
+  { key: 'canViewDispatchLog', label: 'Schichtbuch ansehen' },
+  { key: 'canCreateDispatchLog', label: 'Schichtbuch erstellen' },
 ];
 
 const defaultPermissions: OrgPermission = {
@@ -383,6 +399,14 @@ const defaultPermissions: OrgPermission = {
   canViewMedicalRecords: false,
   canCreateMedicalRecords: false,
   canViewAdminLog: false,
+  canViewNews: true,
+  canCreateNews: false,
+  canViewWarnings: false,
+  canCreateWarnings: false,
+  canViewTrainingRecords: false,
+  canCreateTrainingRecords: false,
+  canViewDispatchLog: false,
+  canCreateDispatchLog: false,
 };
 
 function PermissionsModal({

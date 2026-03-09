@@ -26,6 +26,14 @@ const allPermissionsTrue = {
   canViewMedicalRecords: true,
   canCreateMedicalRecords: true,
   canViewAdminLog: true,
+  canViewNews: true,
+  canCreateNews: true,
+  canViewWarnings: true,
+  canCreateWarnings: true,
+  canViewTrainingRecords: true,
+  canCreateTrainingRecords: true,
+  canViewDispatchLog: true,
+  canCreateDispatchLog: true,
 };
 
 async function main() {
@@ -87,7 +95,7 @@ async function main() {
   }
 
   const hashedPassword = await bcrypt.hash('admin123', 12);
-  await prisma.user.upsert({
+  const adminUser = await prisma.user.upsert({
     where: { username: 'admin' },
     update: {},
     create: {
@@ -222,6 +230,55 @@ async function main() {
       },
     });
   }
+
+  // Seed sample OrgNews for each org
+  for (const org of [police, ems, lsfd, doj]) {
+    await prisma.orgNews.upsert({
+      where: { id: `seed-news-${org.id}` },
+      update: {},
+      create: {
+        id: `seed-news-${org.id}`,
+        title: `Willkommen bei ${org.name}`,
+        content: `<p>Dies ist eine Beispiel-Nachricht für die Organisation <strong>${org.name}</strong>. Hier können interne Ankündigungen und Neuigkeiten veröffentlicht werden.</p>`,
+        pinned: true,
+        organizationId: org.id,
+        authorId: adminUser.id,
+      },
+    });
+  }
+
+  // Seed sample TrainingRecord for LSPD
+  await prisma.trainingRecord.upsert({
+    where: { recordNumber: 'TR-SEED-001' },
+    update: {},
+    create: {
+      recordNumber: 'TR-SEED-001',
+      traineeName: 'Max Mustermann',
+      trainerName: 'admin',
+      trainerId: adminUser.id,
+      organizationId: police.id,
+      type: 'BASIC',
+      modules: { GA: true, LT: true, TA: false, PA: true, LA: false, VK: true, Codes: true, FlugG: false },
+      notes: 'Grundausbildung erfolgreich abgeschlossen.',
+      passed: true,
+      date: new Date(),
+    },
+  });
+
+  // Seed sample DispatchLog for LSPD
+  await prisma.dispatchLog.upsert({
+    where: { logNumber: 'DL-SEED-001' },
+    update: {},
+    create: {
+      logNumber: 'DL-SEED-001',
+      dispatcherId: adminUser.id,
+      organizationId: police.id,
+      shiftStart: new Date(Date.now() - 4 * 60 * 60 * 1000),
+      shiftEnd: new Date(),
+      callsHandled: 12,
+      notes: 'Ruhige Schicht. Mehrere Verkehrskontrollen durchgeführt.',
+    },
+  });
 
   console.log('Seed completed successfully');
 }

@@ -102,6 +102,21 @@ enum CaseFileStatus {
   ARCHIVED
 }
 
+enum WarningSeverity {
+  MINOR
+  MAJOR
+  FINAL
+}
+
+enum TrainingType {
+  BASIC
+  ADVANCED
+  SPECIALIST
+  REFRESHER
+  SUPERVISOR
+  CUSTOM
+}
+
 model User {
   id                 String             @id @default(cuid())
   username           String             @unique
@@ -115,21 +130,27 @@ model User {
   organization       Organization?      @relation(fields: [organizationId], references: [id])
   rankId             String?
   rank               OrgRank?           @relation(fields: [rankId], references: [id])
-  units              Unit[]
-  reports            Report[]
-  incidentNotes      IncidentNote[]
-  warrants           Warrant[]
-  lawsCreated        Law[]              @relation("LawCreatedBy")
-  verdictJudge       Verdict[]          @relation("VerdictJudge")
-  chargesIssued      Charge[]           @relation("ChargeIssuedBy")
-  caseFilesAssigned  CaseFile[]         @relation("CaseFileAssignedTo")
-  caseFilesCreated   CaseFile[]         @relation("CaseFileCreatedBy")
-  caseDocuments      CaseDocument[]     @relation("CaseDocumentAuthor")
-  deathCertificates  DeathCertificate[] @relation("DeathCertDoctor")
-  adminLogs          AdminLog[]         @relation("AdminLogPerformedBy")
-  medicalRecords     MedicalRecord[]    @relation("MedicalRecordAuthor")
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  units                Unit[]
+  reports              Report[]
+  incidentNotes        IncidentNote[]
+  warrants             Warrant[]
+  lawsCreated          Law[]              @relation("LawCreatedBy")
+  verdictJudge         Verdict[]          @relation("VerdictJudge")
+  chargesIssued        Charge[]           @relation("ChargeIssuedBy")
+  caseFilesAssigned    CaseFile[]         @relation("CaseFileAssignedTo")
+  caseFilesCreated     CaseFile[]         @relation("CaseFileCreatedBy")
+  caseDocuments        CaseDocument[]     @relation("CaseDocumentAuthor")
+  deathCertificates    DeathCertificate[] @relation("DeathCertDoctor")
+  adminLogs            AdminLog[]         @relation("AdminLogPerformedBy")
+  medicalRecords       MedicalRecord[]    @relation("MedicalRecordAuthor")
+  orgNewsAuthored      OrgNews[]          @relation("OrgNewsAuthor")
+  orgWarningsReceived  OrgWarning[]       @relation("OrgWarningTarget")
+  orgWarningsIssued    OrgWarning[]       @relation("OrgWarningIssuedBy")
+  trainingAsTrainee    TrainingRecord[]   @relation("TrainingRecordTrainee")
+  trainingAsTrainer    TrainingRecord[]   @relation("TrainingRecordTrainer")
+  dispatchLogs         DispatchLog[]      @relation("DispatchLogDispatcher")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 }
 
 model Organization {
@@ -147,6 +168,10 @@ model Organization {
   ranks             OrgRank[]
   deathCertificates DeathCertificate[]
   medicalRecords    MedicalRecord[]
+  news              OrgNews[]
+  warnings          OrgWarning[]
+  trainingRecords   TrainingRecord[]
+  dispatchLogs      DispatchLog[]
   createdAt         DateTime           @default(now())
 }
 
@@ -176,6 +201,14 @@ model OrgPermission {
   canViewMedicalRecords   Boolean      @default(false)
   canCreateMedicalRecords Boolean      @default(false)
   canViewAdminLog         Boolean      @default(false)
+  canViewNews             Boolean      @default(true)
+  canCreateNews           Boolean      @default(false)
+  canViewWarnings         Boolean      @default(false)
+  canCreateWarnings       Boolean      @default(false)
+  canViewTrainingRecords  Boolean      @default(false)
+  canCreateTrainingRecords Boolean     @default(false)
+  canViewDispatchLog      Boolean      @default(false)
+  canCreateDispatchLog    Boolean      @default(false)
   createdAt               DateTime     @default(now())
   updatedAt               DateTime     @updatedAt
 }
@@ -500,4 +533,72 @@ model FineEntry {
   active         Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+// Org-interne News/Ankündigungen
+model OrgNews {
+  id             String       @id @default(cuid())
+  title          String
+  content        String       @db.Text
+  pinned         Boolean      @default(false)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation("OrgNewsAuthor", fields: [authorId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// Disziplinarakte / Abmahnungen
+model OrgWarning {
+  id             String          @id @default(cuid())
+  title          String
+  description    String          @db.Text
+  severity       WarningSeverity @default(MINOR)
+  targetUserId   String
+  targetUser     User            @relation("OrgWarningTarget", fields: [targetUserId], references: [id])
+  issuedById     String
+  issuedBy       User            @relation("OrgWarningIssuedBy", fields: [issuedById], references: [id])
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  resolved       Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+// Ausbildungsakte
+model TrainingRecord {
+  id             String       @id @default(cuid())
+  recordNumber   String       @unique
+  traineeName    String
+  traineeId      String?
+  trainee        User?        @relation("TrainingRecordTrainee", fields: [traineeId], references: [id])
+  trainerName    String
+  trainerId      String?
+  trainer        User?        @relation("TrainingRecordTrainer", fields: [trainerId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           TrainingType
+  modules        Json?
+  notes          String?      @db.Text
+  passed         Boolean      @default(false)
+  date           DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// Leitstellennachweis / Schichtbuch
+model DispatchLog {
+  id             String       @id @default(cuid())
+  logNumber      String       @unique
+  dispatcherId   String
+  dispatcher     User         @relation("DispatchLogDispatcher", fields: [dispatcherId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  shiftStart     DateTime
+  shiftEnd       DateTime?
+  callsHandled   Int          @default(0)
+  notes          String?      @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }

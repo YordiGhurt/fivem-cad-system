@@ -66,6 +66,11 @@ export default async function OrganizationDetailPage({
         orderBy: { createdAt: 'desc' },
         take: 10,
       },
+      news: {
+        orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }],
+        take: 3,
+        include: { author: { select: { id: true, username: true } } },
+      },
       permissions: true,
       ranks: {
         orderBy: { level: 'asc' },
@@ -272,8 +277,39 @@ export default async function OrganizationDetailPage({
         </div>
       </div>
 
+      {/* Recent OrgNews */}
+      {org.news.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mt-6">
+          <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+            <h2 className="text-white font-semibold">Aktuelle News</h2>
+            <Link
+              href={`/dashboard/org-news?organizationId=${org.id}`}
+              className="text-blue-400 hover:text-blue-300 text-xs transition-colors"
+            >
+              Alle ansehen →
+            </Link>
+          </div>
+          <div className="divide-y divide-slate-800">
+            {org.news.map((item) => (
+              <div key={item.id} className="px-5 py-4">
+                <div className="flex items-center gap-2 mb-1">
+                  {item.pinned && (
+                    <span className="text-xs text-yellow-400">📌</span>
+                  )}
+                  <span className="text-white text-sm font-medium">{item.title}</span>
+                  <span className="text-slate-500 text-xs ml-auto">
+                    {format(new Date(item.createdAt), 'dd.MM.yyyy')}
+                  </span>
+                </div>
+                <p className="text-slate-400 text-xs">{item.author.username}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recent Incidents */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mt-6">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-slate-400" />
           <h2 className="text-white font-semibold">Letzte Einsätze</h2>
