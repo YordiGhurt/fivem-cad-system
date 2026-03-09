@@ -34,27 +34,10 @@ export async function GET(
   return NextResponse.json({ data: verdict });
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function PUT() {
+  return NextResponse.json({ error: 'Urteile können nach der Erstellung nicht bearbeitet werden' }, { status: 405 });
+}
 
-  try {
-    const { id } = await params;
-    const body = await req.json();
-    const data = updateSchema.parse(body);
-
-    const verdict = await prisma.verdict.update({
-      where: { id },
-      data,
-      include: { judge: { select: { id: true, username: true } } },
-    });
-
-    return NextResponse.json({ data: verdict });
-  } catch (error) {
-    console.error('[verdicts/:id PUT]', error);
-    return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
-  }
+export async function DELETE() {
+  return NextResponse.json({ error: 'Urteile können nicht gelöscht werden – sie sind permanente Rechtsdokumente' }, { status: 405 });
 }

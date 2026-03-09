@@ -40,7 +40,7 @@ export async function PUT(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const role = session.user.role;
-  if (role !== 'ADMIN' && role !== 'SUPERVISOR') {
+  if (role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -62,19 +62,6 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const { id } = await params;
-  await prisma.law.delete({ where: { id } });
-
-  return NextResponse.json({ success: true });
+export async function DELETE() {
+  return NextResponse.json({ error: 'Gesetze können nicht gelöscht werden – setze active=false zur Deaktivierung' }, { status: 405 });
 }

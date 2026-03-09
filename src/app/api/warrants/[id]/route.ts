@@ -37,6 +37,10 @@ export async function PUT(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const role = session.user.role;
+  if (role !== 'ADMIN' && role !== 'SUPERVISOR')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   try {
     const { id } = await params;
     const body = await req.json();
@@ -63,23 +67,6 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERVISOR') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  try {
-    const { id } = await params;
-    await prisma.warrant.delete({ where: { id } });
-    return NextResponse.json({ message: 'Deleted' });
-  } catch (error) {
-    console.error('[warrants/:id DELETE]', error);
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
+export async function DELETE() {
+  return NextResponse.json({ error: 'Haftbefehle können nicht gelöscht werden – sie sind permanente Rechtsdokumente' }, { status: 405 });
 }

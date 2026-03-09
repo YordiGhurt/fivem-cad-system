@@ -41,6 +41,9 @@ export async function PUT(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  if (session.user.role !== 'ADMIN')
+    return NextResponse.json({ error: 'Forbidden – Bürgerdaten sind schreibgeschützt' }, { status: 403 });
+
   try {
     const { id } = await params;
     const body = await req.json();
@@ -61,23 +64,6 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  try {
-    const { id } = await params;
-    await prisma.citizen.delete({ where: { id } });
-    return NextResponse.json({ message: 'Deleted' });
-  } catch (error) {
-    console.error('[citizens/:id DELETE]', error);
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
+export async function DELETE() {
+  return NextResponse.json({ error: 'Bürger können nicht gelöscht werden' }, { status: 405 });
 }

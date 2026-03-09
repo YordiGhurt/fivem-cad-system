@@ -29,7 +29,9 @@ export default async function VerdictsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const role = session?.user?.role;
+  const canCreate = role === 'ADMIN' || role === 'SUPERVISOR';
 
   const sp = await searchParams;
   const type = sp.type;
@@ -66,12 +68,14 @@ export default async function VerdictsPage({
           <h1 className="text-2xl font-bold text-white">Urteile</h1>
           <p className="text-slate-400 text-sm mt-1">{total} Urteile gesamt</p>
         </div>
-        <Link
-          href="/dashboard/verdicts/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          + Neues Urteil
-        </Link>
+        {canCreate && (
+          <Link
+            href="/dashboard/verdicts/new"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            + Neues Urteil
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

@@ -40,6 +40,10 @@ export async function PUT(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const role = session.user.role;
+  if (role !== 'ADMIN' && role !== 'SUPERVISOR')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   try {
     const { id } = await params;
     const body = await req.json();
@@ -59,4 +63,8 @@ export async function PUT(
     console.error('[charges/:id PUT]', error);
     return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
   }
+}
+
+export async function DELETE() {
+  return NextResponse.json({ error: 'Anklagen können nicht gelöscht werden' }, { status: 405 });
 }
