@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktiv',
@@ -28,9 +29,10 @@ interface WarrantDetailClientProps {
     expiresAt: Date | null;
     createdAt: Date;
   };
+  isAdmin?: boolean;
 }
 
-export function WarrantDetailClient({ warrant }: WarrantDetailClientProps) {
+export function WarrantDetailClient({ warrant, isAdmin }: WarrantDetailClientProps) {
   const [pdfUrl, setPdfUrl] = useState(warrant.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -72,6 +74,13 @@ export function WarrantDetailClient({ warrant }: WarrantDetailClientProps) {
           {warrant.citizenId && <p className="text-slate-400 text-sm mt-1">ID: {warrant.citizenId}</p>}
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <DeleteButton
+              id={warrant.id}
+              endpoint="/api/warrants"
+              redirectTo="/dashboard/warrants"
+            />
+          )}
           {pdfUrl ? (
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">

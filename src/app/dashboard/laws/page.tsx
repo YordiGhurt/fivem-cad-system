@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const categoryLabels: Record<string, string> = {
   CRIMINAL: 'Strafrecht',
@@ -127,12 +128,13 @@ export default async function LawsPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Haftzeit (Mo.)</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Status</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Erstellt</th>
+              {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {laws.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 9 : 8} className="px-4 py-12 text-center text-slate-500">
                   Keine Gesetze gefunden
                 </td>
               </tr>
@@ -159,6 +161,11 @@ export default async function LawsPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(law.createdAt), 'dd.MM.yyyy')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <DeleteButton id={law.id} endpoint="/api/laws" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

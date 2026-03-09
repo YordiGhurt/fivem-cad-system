@@ -9,7 +9,8 @@ export default async function CaseFileDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const { id } = await params;
 
   const caseFile = await prisma.caseFile.findUnique({
@@ -24,5 +25,5 @@ export default async function CaseFileDetailPage({
 
   if (!caseFile) notFound();
 
-  return <CaseFileDetailClient caseFile={caseFile} />;
+  return <CaseFileDetailClient caseFile={caseFile} isAdmin={isAdmin} />;
 }

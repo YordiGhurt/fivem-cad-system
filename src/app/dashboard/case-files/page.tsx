@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const caseFileStatusLabels: Record<string, string> = {
   OPEN: 'Offen',
@@ -29,7 +30,8 @@ export default async function CaseFilesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const sp = await searchParams;
   const status = sp.status;
@@ -128,12 +130,13 @@ export default async function CaseFilesPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Zuständig</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Anklagen</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Erstellt</th>
+              {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {caseFiles.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-slate-500">
                   Keine Parteiakten gefunden
                 </td>
               </tr>
@@ -153,6 +156,11 @@ export default async function CaseFilesPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(cf.createdAt), 'dd.MM.yyyy HH:mm')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <DeleteButton id={cf.id} endpoint="/api/case-files" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

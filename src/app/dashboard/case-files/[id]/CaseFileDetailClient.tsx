@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const statusLabels: Record<string, string> = {
   OPEN: 'Offen',
@@ -34,9 +35,10 @@ interface CaseFileDetailClientProps {
     createdAt: Date;
     updatedAt: Date;
   };
+  isAdmin?: boolean;
 }
 
-export function CaseFileDetailClient({ caseFile }: CaseFileDetailClientProps) {
+export function CaseFileDetailClient({ caseFile, isAdmin }: CaseFileDetailClientProps) {
   const [pdfUrl, setPdfUrl] = useState(caseFile.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -79,6 +81,13 @@ export function CaseFileDetailClient({ caseFile }: CaseFileDetailClientProps) {
           {caseFile.citizenName && <p className="text-slate-400 text-sm mt-1">{caseFile.citizenName}{caseFile.citizenId ? ` (${caseFile.citizenId})` : ''}</p>}
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <DeleteButton
+              id={caseFile.id}
+              endpoint="/api/case-files"
+              redirectTo="/dashboard/case-files"
+            />
+          )}
           {pdfUrl ? (
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">

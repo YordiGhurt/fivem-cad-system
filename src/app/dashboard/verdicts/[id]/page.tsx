@@ -9,7 +9,8 @@ export default async function VerdictDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const { id } = await params;
 
   const verdict = await prisma.verdict.findUnique({
@@ -19,5 +20,5 @@ export default async function VerdictDetailPage({
 
   if (!verdict) notFound();
 
-  return <VerdictDetailClient verdict={verdict} />;
+  return <VerdictDetailClient verdict={verdict} isAdmin={isAdmin} />;
 }

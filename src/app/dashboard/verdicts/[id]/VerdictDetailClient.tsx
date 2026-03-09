@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const typeLabels: Record<string, string> = {
   GUILTY: 'Schuldig',
@@ -34,9 +35,10 @@ interface VerdictDetailClientProps {
     issuedAt: Date;
     updatedAt: Date;
   };
+  isAdmin?: boolean;
 }
 
-export function VerdictDetailClient({ verdict }: VerdictDetailClientProps) {
+export function VerdictDetailClient({ verdict, isAdmin }: VerdictDetailClientProps) {
   const [pdfUrl, setPdfUrl] = useState(verdict.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -79,6 +81,13 @@ export function VerdictDetailClient({ verdict }: VerdictDetailClientProps) {
           {verdict.citizenId && <p className="text-slate-400 text-sm mt-1">ID: {verdict.citizenId}</p>}
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <DeleteButton
+              id={verdict.id}
+              endpoint="/api/verdicts"
+              redirectTo="/dashboard/verdicts"
+            />
+          )}
           {pdfUrl ? (
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">

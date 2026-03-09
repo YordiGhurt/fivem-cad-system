@@ -9,7 +9,8 @@ export default async function WarrantDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const { id } = await params;
 
   const warrant = await prisma.warrant.findUnique({
@@ -19,5 +20,5 @@ export default async function WarrantDetailPage({
 
   if (!warrant) notFound();
 
-  return <WarrantDetailClient warrant={warrant} />;
+  return <WarrantDetailClient warrant={warrant} isAdmin={isAdmin} />;
 }

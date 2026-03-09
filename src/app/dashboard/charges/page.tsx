@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const chargeStatusLabels: Record<string, string> = {
   PENDING: 'Ausstehend',
@@ -29,7 +30,8 @@ export default async function ChargesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const sp = await searchParams;
   const status = sp.status;
@@ -125,12 +127,13 @@ export default async function ChargesPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Status</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aussteller</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Datum</th>
+              {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {charges.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 7 : 6} className="px-4 py-12 text-center text-slate-500">
                   Keine Anklagen gefunden
                 </td>
               </tr>
@@ -151,6 +154,11 @@ export default async function ChargesPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(charge.createdAt), 'dd.MM.yyyy HH:mm')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-center">
+                      <DeleteButton id={charge.id} endpoint="/api/charges" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}
