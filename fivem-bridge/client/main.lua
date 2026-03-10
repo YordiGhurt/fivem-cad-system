@@ -3,6 +3,7 @@
 
 local QBCore = exports['qb-core']:GetCoreObject()
 local cadOpen = false
+local cadUnitCallsign = nil
 
 -- CAD-Interface öffnen
 local function openCAD()
@@ -88,6 +89,68 @@ RegisterCommand('stolen', function(source, args)
     QBCore.Functions.Notify('Fahrzeug ' .. plate .. ' als gestohlen gemeldet', 'success')
 end, false)
 
+-- Panic-Button: /panic oder F9
+local panicCooldown = false
+
+local function triggerPanic()
+    if panicCooldown then
+        QBCore.Functions.Notify('Panic Button ist im Cooldown (30 Sekunden)', 'error')
+        return
+    end
+
+    local callsign = (cadUnitCallsign or 'UNBEKANNT')
+    local playerPed = PlayerPedId()
+    local coords = GetEntityCoords(playerPed)
+    local location = string.format('X:%.1f Y:%.1f Z:%.1f', coords.x, coords.y, coords.z)
+
+    TriggerServerEvent('cad:server:panicButton', callsign, location)
+    QBCore.Functions.Notify('🚨 PANIC BUTTON ausgelöst! Hilfe wurde angefordert.', 'error', 8000)
+
+    panicCooldown = true
+    SetTimeout(30000, function()
+        panicCooldown = false
+    end)
+end
+
+RegisterCommand('panic', function()
+    triggerPanic()
+end, false)
+
+RegisterKeyMapping('panic', 'CAD Panic Button', 'keyboard', 'F9')
+
+-- Event: Panic Alert empfangen (von anderen Einheiten)
+RegisterNetEvent('cad:client:panicAlert', function(callsign, location)
+    QBCore.Functions.Notify('🚨 PANIC! Officer ' .. callsign .. ' braucht Hilfe! Ort: ' .. location, 'error', 10000)
+end)
+
+-- Event: Einheitenstatus-Update empfangen
+RegisterNetEvent('cad:client:unitStatusUpdate', function(payload)
+    if payload and payload.callsign and payload.status then
+        QBCore.Functions.Notify('[CAD] Einheit ' .. payload.callsign .. ': ' .. payload.status, 'primary', 4000)
+    end
+end)
+
+-- Event: Neuer Einsatz erstellt
+RegisterNetEvent('cad:client:incidentCreated', function(payload)
+    if payload then
+        QBCore.Functions.Notify('🚨 Neuer Einsatz: ' .. (payload.type or 'Unbekannt') .. ' - ' .. (payload.location or ''), 'warning', 6000)
+    end
+end)
+
+-- Event: Einsatz aktualisiert
+RegisterNetEvent('cad:client:incidentUpdated', function(payload)
+    if payload and payload.caseNumber then
+        QBCore.Functions.Notify('[CAD] Einsatz ' .. payload.caseNumber .. ' aktualisiert', 'primary', 4000)
+    end
+end)
+
+-- Event: CAD-Benachrichtigung anzeigen
+RegisterNetEvent('cad:client:showNotification', function(payload)
+    if payload and payload.message then
+        QBCore.Functions.Notify('[CAD] ' .. payload.message, 'primary', 5000)
+    end
+end)
+
 -- NUI-Callback: CAD schließen
 RegisterNUICallback('closeCAD', function(data, cb)
     closeCAD()
@@ -99,6 +162,9 @@ RegisterNUICallback('setUnitId', function(data, cb)
     if data and data.unitId then
         LocalStorage = LocalStorage or {}
         LocalStorage.cadUnitId = data.unitId
+    end
+    if data and data.callsign then
+        cadUnitCallsign = data.callsign
     end
     cb({})
 end)
@@ -114,3 +180,4 @@ CreateThread(function()
 end)
 
 print('[CAD Bridge] Client-Script geladen')
+

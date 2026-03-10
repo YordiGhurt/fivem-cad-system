@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createAdminLog } from '@/lib/adminLog';
+import { emitter } from '@/lib/sse';
 import { z } from 'zod';
 
 const updateSchema = z
@@ -60,6 +61,8 @@ export async function PUT(
       include: { organization: true },
     });
 
+    emitter.emit('update', { type: 'incident', action: 'updated', id: incident.id });
+
     return NextResponse.json({ data: incident });
   } catch (error) {
     console.error('[incidents/:id PUT]', error);
@@ -82,6 +85,7 @@ export async function DELETE(
     const { id } = await params;
     await prisma.incident.delete({ where: { id } });
     await createAdminLog('DATA_DELETED', `Einsatz ${id} gelöscht`, session.user.id, id, 'Incident');
+    emitter.emit('update', { type: 'incident', action: 'deleted', id });
     return NextResponse.json({ message: 'Deleted' });
   } catch (error) {
     console.error('[incidents/:id DELETE]', error);

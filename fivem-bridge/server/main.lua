@@ -18,6 +18,20 @@ local function cadApiPost(endpoint, data, callback)
     })
 end
 
+-- Hilfsfunktion: HTTP-GET an CAD API
+local function cadApiGet(endpoint, callback)
+    local url = Config.CAD_URL .. endpoint
+
+    PerformHttpRequest(url, function(statusCode, responseText, headers)
+        if callback then
+            callback(statusCode, responseText)
+        end
+    end, 'GET', '', {
+        ['Content-Type'] = 'application/json',
+        ['x-api-key'] = Config.API_KEY,
+    })
+end
+
 -- Spieler-Daten synchronisieren
 local function syncPlayerToCAD(source)
     local Player = QBCore.Functions.GetPlayer(source)
@@ -123,6 +137,63 @@ RegisterNetEvent('cad:server:createIncident', function(data)
     end)
 end)
 
+-- Panic Button vom Client
+RegisterNetEvent('cad:server:panicButton', function(callsign, location)
+    local source = source
+    local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then return end
+
+    local steamId = GetPlayerIdentifierByType(source, 'steam') or ''
+    local orgId = ''
+
+    -- Alle Disponenten über den Panic Button informieren
+    TriggerClientEvent('cad:client:panicAlert', -1, callsign, location)
+
+    cadApiPost('/api/fivem/panic', {
+        steamId = steamId,
+        unitCallsign = callsign,
+        location = location or 'Unbekannt',
+    }, function(statusCode, responseText)
+        if statusCode == 200 then
+            print('[CAD Bridge] Panic Button gesendet für: ' .. callsign)
+        else
+            print('[CAD Bridge] Panic-Fehler: ' .. tostring(status))
+        end
+    end)
+end)
+
+-- Event-Polling: CAD → FiveM Push-Events abholen
+CreateThread(function()
+    while true do
+        Wait(Config.SyncInterval)
+
+        cadApiGet('/api/fivem/poll', function(statusCode, responseText)
+            if statusCode ~= 200 or not responseText then return end
+
+            local ok, data = pcall(json.decode, responseText)
+            if not ok or not data or not data.events then return end
+
+            for _, event in ipairs(data.events) do
+                print('[CAD Bridge] Event empfangen: ' .. event.type)
+
+                if event.type == 'unit_status_update' then
+                    TriggerClientEvent('cad:client:unitStatusUpdate', -1, event.payload)
+
+                elseif event.type == 'incident_created' then
+                    TriggerClientEvent('cad:client:incidentCreated', -1, event.payload)
+
+                elseif event.type == 'incident_updated' then
+                    TriggerClientEvent('cad:client:incidentUpdated', -1, event.payload)
+
+                elseif event.type == 'notification' then
+                    -- Zeige Notification an alle Spieler
+                    TriggerClientEvent('cad:client:showNotification', -1, event.payload)
+                end
+            end
+        end)
+    end
+end)
+
 -- Periodische Synchronisierung aller Online-Spieler
 if Config.AutoSync then
     CreateThread(function()
@@ -137,3 +208,4 @@ if Config.AutoSync then
 end
 
 print('[CAD Bridge] Server-Script geladen')
+
