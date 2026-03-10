@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const statusLabels: Record<string, string> = {
   PENDING: 'Ausstehend',
@@ -31,9 +32,10 @@ interface ChargeDetailClientProps {
     createdAt: Date;
     updatedAt: Date;
   };
+  isAdmin?: boolean;
 }
 
-export function ChargeDetailClient({ charge }: ChargeDetailClientProps) {
+export function ChargeDetailClient({ charge, isAdmin }: ChargeDetailClientProps) {
   const [pdfUrl, setPdfUrl] = useState(charge.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -75,6 +77,13 @@ export function ChargeDetailClient({ charge }: ChargeDetailClientProps) {
           {charge.citizenId && <p className="text-slate-400 text-sm mt-1">ID: {charge.citizenId}</p>}
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <DeleteButton
+              id={charge.id}
+              endpoint="/api/charges"
+              redirectTo="/dashboard/charges"
+            />
+          )}
           {pdfUrl ? (
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">

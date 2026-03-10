@@ -9,7 +9,8 @@ export default async function ReportDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const { id } = await params;
   const report = await prisma.report.findUnique({
@@ -19,5 +20,5 @@ export default async function ReportDetailPage({
 
   if (!report) notFound();
 
-  return <ReportDetailClient report={report} />;
+  return <ReportDetailClient report={report} isAdmin={isAdmin} />;
 }

@@ -9,7 +9,8 @@ export default async function MedicalRecordDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const { id } = await params;
 
   const record = await prisma.medicalRecord.findUnique({
@@ -19,5 +20,5 @@ export default async function MedicalRecordDetailPage({
 
   if (!record) notFound();
 
-  return <MedicalRecordDetailClient record={record} />;
+  return <MedicalRecordDetailClient record={record} isAdmin={isAdmin} />;
 }

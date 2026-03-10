@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 interface SearchParams {
   organizationId?: string;
@@ -18,6 +19,7 @@ export default async function OrgNewsPage({
 
   const sp = await searchParams;
   const organizationId = sp.organizationId ?? (session?.user?.organizationId ?? undefined);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const page = parseInt(sp.page ?? '1');
   const pageSize = 20;
 
@@ -90,6 +92,11 @@ export default async function OrgNewsPage({
                 <span className="text-slate-500 text-xs">
                   {item.organization.callsign} – {item.organization.name}
                 </span>
+                {isAdmin && (
+                  <div className="ml-auto">
+                    <DeleteButton id={item.id} endpoint="/api/org-news" />
+                  </div>
+                )}
               </div>
             </div>
           ))

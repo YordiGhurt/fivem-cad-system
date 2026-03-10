@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createAdminLog } from '@/lib/adminLog';
 import { z } from 'zod';
 
 const updateSchema = z.object({
@@ -74,5 +75,6 @@ export async function DELETE(
 
   const { id } = await params;
   await prisma.orgWarning.delete({ where: { id } });
+  await createAdminLog('DATA_DELETED', `Abmahnung ${id} gelöscht`, session.user.id, id, 'OrgWarning');
   return NextResponse.json({ success: true });
 }

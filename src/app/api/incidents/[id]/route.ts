@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createAdminLog } from '@/lib/adminLog';
 import { z } from 'zod';
 
 const updateSchema = z
@@ -80,6 +81,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     await prisma.incident.delete({ where: { id } });
+    await createAdminLog('DATA_DELETED', `Einsatz ${id} gelöscht`, session.user.id, id, 'Incident');
     return NextResponse.json({ message: 'Deleted' });
   } catch (error) {
     console.error('[incidents/:id DELETE]', error);
