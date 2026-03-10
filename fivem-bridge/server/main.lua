@@ -52,6 +52,18 @@ local function syncPlayerToCAD(source)
     }, function(status, response)
         if status == 200 then
             print('[CAD Bridge] Spieler synchronisiert: ' .. citizenid)
+
+            -- Fahrzeuge aus QBCore laden und synchronisieren
+            local vehicles = Player.PlayerData.vehicles
+            if vehicles then
+                syncVehiclesToCAD(citizenid, vehicles)
+            end
+
+            -- Waffen aus QBCore laden und synchronisieren
+            local items = Player.PlayerData.items
+            if items then
+                syncWeaponsToCAD(citizenid, items)
+            end
         else
             print('[CAD Bridge] Sync-Fehler für ' .. citizenid .. ': ' .. tostring(status))
         end
@@ -59,32 +71,29 @@ local function syncPlayerToCAD(source)
 end
 
 -- Fahrzeuge synchronisieren
-local function syncVehiclesToCAD(source)
+-- In QBCore sind Fahrzeuge als Key-Value-Pairs gespeichert (Key = Kennzeichen)
+local function syncVehiclesToCAD(citizenid, vehicles)
     if not Config.SyncVehicles then return end
+    if not vehicles then return end
 
-    local Player = QBCore.Functions.GetPlayer(source)
-    if not Player then return end
-
-    local citizenid = Player.PlayerData.citizenid
-    if not citizenid then return end
-
-    local vehicles = Player.PlayerData.vehicles or {}
     local vehicleList = {}
 
-    for _, vehicle in ipairs(vehicles) do
+    for plate, vehicleData in pairs(vehicles) do
         table.insert(vehicleList, {
-            plate = vehicle.plate or '',
-            model = vehicle.vehicle or vehicle.model or 'unknown',
-            color = tostring(vehicle.color or '0'),
+            plate = plate,
+            model = vehicleData.vehicle or vehicleData.model or 'Unbekannt',
+            color = tostring(vehicleData.color1 or 0),
         })
     end
+
+    if #vehicleList == 0 then return end
 
     cadApiPost('/api/sync/vehicles', {
         citizenId = citizenid,
         vehicles = vehicleList,
     }, function(status, response)
         if status == 200 then
-            print('[CAD Bridge] Fahrzeuge synchronisiert für: ' .. citizenid)
+            print('[CAD Bridge] ' .. #vehicleList .. ' Fahrzeuge synchronisiert für: ' .. citizenid)
         else
             print('[CAD Bridge] Fahrzeug-Sync-Fehler für ' .. citizenid .. ': ' .. tostring(status))
         end
@@ -92,34 +101,31 @@ local function syncVehiclesToCAD(source)
 end
 
 -- Waffen synchronisieren
-local function syncWeaponsToCAD(source)
+-- In QBCore sind Items als Key-Value-Pairs gespeichert (Key = Itemname)
+local function syncWeaponsToCAD(citizenid, items)
     if not Config.SyncWeapons then return end
+    if not items then return end
 
-    local Player = QBCore.Functions.GetPlayer(source)
-    if not Player then return end
-
-    local citizenid = Player.PlayerData.citizenid
-    if not citizenid then return end
-
-    local items = Player.PlayerData.items or {}
     local weaponList = {}
 
-    for _, item in ipairs(items) do
-        if item and item.name and string.sub(string.lower(item.name), 1, 7) == 'weapon_' then
+    for itemName, itemData in pairs(items) do
+        if string.find(itemName, '^weapon_') then
             table.insert(weaponList, {
-                serialNumber = item.info and item.info.serie or (item.name .. '_' .. citizenid),
-                model = item.name,
-                licensed = item.info and item.info.licensed or false,
+                serialNumber = itemData.info and itemData.info.serie or (citizenid .. '_' .. itemName),
+                model = itemName or itemData.label or 'Unbekannt',
+                licensed = itemData.info and itemData.info.licensed or false,
             })
         end
     end
+
+    if #weaponList == 0 then return end
 
     cadApiPost('/api/sync/weapons', {
         citizenId = citizenid,
         weapons = weaponList,
     }, function(status, response)
         if status == 200 then
-            print('[CAD Bridge] Waffen synchronisiert für: ' .. citizenid)
+            print('[CAD Bridge] ' .. #weaponList .. ' Waffen synchronisiert für: ' .. citizenid)
         else
             print('[CAD Bridge] Waffen-Sync-Fehler für ' .. citizenid .. ': ' .. tostring(status))
         end
@@ -142,8 +148,11 @@ AddEventHandler('QBCore:Server:PlayerLoaded', function(Player)
             syncPlayerToCAD(source)
         end)
         SetTimeout(4000, function()
-            syncVehiclesToCAD(source)
-            syncWeaponsToCAD(source)
+            local citizenid = Player.PlayerData.citizenid
+            if citizenid then
+                syncVehiclesToCAD(citizenid, Player.PlayerData.vehicles)
+                syncWeaponsToCAD(citizenid, Player.PlayerData.items)
+            end
         end)
     end
 end)
@@ -153,7 +162,10 @@ RegisterNetEvent('cad:server:syncWeapons', function()
     local source = source
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return end
-    syncWeaponsToCAD(source)
+    local citizenid = Player.PlayerData.citizenid
+    if citizenid then
+        syncWeaponsToCAD(citizenid, Player.PlayerData.items)
+    end
 end)
 
 -- Manueller Fahrzeug-Sync (vom Client ausgelöst)
@@ -161,7 +173,10 @@ RegisterNetEvent('cad:server:syncVehicles', function()
     local source = source
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return end
-    syncVehiclesToCAD(source)
+    local citizenid = Player.PlayerData.citizenid
+    if citizenid then
+        syncVehiclesToCAD(citizenid, Player.PlayerData.vehicles)
+    end
 end)
 
 -- Einheit-Status aktualisieren (von Client-Trigger)
