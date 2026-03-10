@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { checkOrgPermission } from '@/lib/checkOrgPermission';
+import { emitter } from '@/lib/sse';
+import { notifyOrganizationMembers } from '@/lib/createNotification';
 import { z } from 'zod';
 
 const createSchema = z.object({
@@ -60,6 +63,9 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const allowed = await checkOrgPermission(session.user.id, 'canCreateIncidents');
+  if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   try {
     const body = await req.json();
     const data = createSchema.parse(body);
@@ -77,6 +83,18 @@ export async function POST(req: NextRequest) {
       },
       include: { organization: true },
     });
+
+    emitter.emit('update', { type: 'incident', action: 'created', id: incident.id });
+
+    // Notify all DISPATCHER/OFFICER/SUPERVISOR in the organization
+    await notifyOrganizationMembers(
+      incident.organizationId,
+      ['ADMIN', 'SUPERVISOR', 'DISPATCHER', 'OFFICER'],
+      '🚨 Neuer Einsatz',
+      `${incident.type} – ${incident.location} (${incident.caseNumber})`,
+      'warning',
+      `/dashboard/incidents/${incident.id}`,
+    );
 
     return NextResponse.json({ data: incident }, { status: 201 });
   } catch (error) {

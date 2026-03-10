@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint-and-type-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test -- --run
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint-and-type-check, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          NEXTAUTH_SECRET: test-secret-for-build
+          NEXTAUTH_URL: http://localhost:3000

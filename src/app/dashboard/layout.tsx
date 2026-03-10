@@ -28,7 +28,13 @@ import {
   GraduationCap,
   ClipboardList,
   ScrollText,
+  Map,
+  BarChart2,
+  Menu,
+  X,
 } from 'lucide-react';
+import RealtimeProvider from '@/components/RealtimeProvider';
+import NotificationBell from '@/components/NotificationBell';
 
 interface OrgPermission {
   canViewIncidents: boolean;
@@ -70,6 +76,7 @@ const navGroups: NavGroup[] = [
       { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
       { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' },
       { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' },
+      { href: '/dashboard/map', label: 'Karte', icon: Map },
     ],
   },
   {
@@ -111,6 +118,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'Verwaltung',
     items: [
+      { href: '/dashboard/stats', label: 'Statistiken', icon: BarChart2, supervisorOnly: true },
       { href: '/dashboard/admin-log', label: 'Admin-Log', icon: ScrollText, supervisorOnly: true },
       { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
     ],
@@ -121,6 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: session } = useSession();
   const pathname = usePathname();
   const [orgPermissions, setOrgPermissions] = useState<OrgPermission | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isAdmin = session?.user?.role === 'ADMIN';
   const isSupervisor = session?.user?.role === 'SUPERVISOR';
@@ -136,6 +145,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .then((d) => setOrgPermissions(d.data ?? null))
       .catch(() => setOrgPermissions(null));
   }, [session?.user?.organizationId]);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   const isNavItemVisible = (item: NavItem) => {
     // Admin-only items
@@ -153,80 +167,135 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return orgPermissions[item.permKey] !== false;
   };
 
+  const SidebarContent = () => (
+    <>
+      <div className="p-4 border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Shield className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm">CAD System</p>
+            <p className="text-slate-400 text-xs">FiveM QBCore</p>
+          </div>
+        </div>
+      </div>
+      <nav className="flex-1 p-3 overflow-y-auto">
+        {navGroups.map((group, groupIdx) => {
+          const visibleItems = group.items.filter(isNavItemVisible);
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={group.label}>
+              {groupIdx > 0 && <div className="my-1 border-t border-slate-800/60" />}
+              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                {group.label}
+              </p>
+              {visibleItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  item.href === '/dashboard'
+                    ? pathname === '/dashboard'
+                    : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={clsx(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                      isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800',
+                    )}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
+      </nav>
+      <div className="p-3 border-t border-slate-800">
+        <div className="flex items-center gap-3 px-3 py-2 mb-2">
+          <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
+            <span className="text-xs font-bold text-white uppercase">
+              {session?.user?.username?.[0] ?? 'U'}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-medium truncate">{session?.user?.username}</p>
+            <p className="text-slate-400 text-xs">{session?.user?.role}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Abmelden
+        </button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="flex h-screen bg-slate-950 overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
-        <div className="p-4 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="text-white font-semibold text-sm">CAD System</p>
-              <p className="text-slate-400 text-xs">FiveM QBCore</p>
-            </div>
-          </div>
-        </div>
-        <nav className="flex-1 p-3 overflow-y-auto">
-          {navGroups.map((group, groupIdx) => {
-            const visibleItems = group.items.filter(isNavItemVisible);
-            if (visibleItems.length === 0) return null;
-            return (
-              <div key={group.label}>
-                {groupIdx > 0 && <div className="my-1 border-t border-slate-800/60" />}
-                <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  {group.label}
-                </p>
-                {visibleItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive =
-                    item.href === '/dashboard'
-                      ? pathname === '/dashboard'
-                      : pathname.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={clsx(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
-                        isActive
-                          ? 'bg-blue-600 text-white'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                      )}
-                    >
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </nav>
-        <div className="p-3 border-t border-slate-800">
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
-            <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-              <span className="text-xs font-bold text-white uppercase">
-                {session?.user?.username?.[0] ?? 'U'}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">{session?.user?.username}</p>
-              <p className="text-slate-400 text-xs">{session?.user?.role}</p>
-            </div>
-          </div>
+    <RealtimeProvider>
+      <div className="flex h-screen bg-slate-950 overflow-hidden">
+        {/* Mobile overlay */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/60 z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar – desktop: always visible; mobile: overlay */}
+        <aside
+          className={clsx(
+            'bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200',
+            'fixed inset-y-0 left-0 z-50 w-64',
+            'md:relative md:translate-x-0',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+          )}
+        >
+          <SidebarContent />
+          {/* Close button (mobile only) */}
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors"
+            className="absolute top-4 right-4 md:hidden text-slate-400 hover:text-white"
+            onClick={() => setSidebarOpen(false)}
           >
-            <LogOut className="w-4 h-4" />
-            Abmelden
+            <X className="w-5 h-5" />
           </button>
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* Top bar (mobile) */}
+          <header className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="text-slate-400 hover:text-white"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                <Shield className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span className="text-white font-semibold text-sm">CAD System</span>
+            </div>
+            <NotificationBell />
+          </header>
+
+          {/* Desktop notification bar */}
+          <div className="hidden md:flex items-center justify-end px-4 py-2 bg-slate-950 border-b border-slate-800/50">
+            <NotificationBell />
+          </div>
+
+          <main className="flex-1 overflow-y-auto">{children}</main>
         </div>
-      </aside>
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">{children}</main>
-    </div>
+      </div>
+    </RealtimeProvider>
   );
 }

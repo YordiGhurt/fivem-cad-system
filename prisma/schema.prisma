@@ -149,6 +149,8 @@ model User {
   trainingAsTrainee    TrainingRecord[]   @relation("TrainingRecordTrainee")
   trainingAsTrainer    TrainingRecord[]   @relation("TrainingRecordTrainer")
   dispatchLogs         DispatchLog[]      @relation("DispatchLogDispatcher")
+  passwordResetTokens  PasswordResetToken[]
+  notifications        Notification[]
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 }
@@ -342,6 +344,7 @@ model Vehicle {
   color              String
   ownerId            String
   owner              Citizen   @relation(fields: [ownerId], references: [citizenId])
+  citizenId          String?
   stolen             Boolean   @default(false)
   flagged            Boolean   @default(false)
   flagReason         String?
@@ -615,4 +618,26 @@ model DispatchLog {
   notes          String?      @db.Text
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
 }

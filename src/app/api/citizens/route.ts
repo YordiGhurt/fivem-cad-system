@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { checkOrgPermission } from '@/lib/checkOrgPermission';
 import { z } from 'zod';
 
 const createSchema = z.object({
@@ -19,6 +20,9 @@ const createSchema = z.object({
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const allowed = await checkOrgPermission(session.user.id, 'canViewCitizens');
+  if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search') ?? '';
