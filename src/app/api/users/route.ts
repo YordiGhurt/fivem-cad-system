@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { createAdminLog } from '@/lib/adminLog';
@@ -14,15 +15,34 @@ const createSchema = z.object({
   organizationId: z.string().nullable().optional(),
 });
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const { searchParams } = new URL(req.url);
+  const orgId = searchParams.get('organizationId');
+
+  // Non-admin users may query users within an organization (e.g. for the unit form dropdown)
+  // but only when an organizationId filter is provided.
   if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!orgId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const users = await prisma.user.findMany({
+      where: { organizationId: orgId },
+      select: { id: true, username: true },
+      orderBy: { username: 'asc' },
+    });
+
+    return NextResponse.json({ data: users });
   }
 
+  const where: Prisma.UserWhereInput = {};
+  if (orgId) where.organizationId = orgId;
+
   const users = await prisma.user.findMany({
+    where,
     include: { organization: true },
     orderBy: { createdAt: 'desc' },
   });

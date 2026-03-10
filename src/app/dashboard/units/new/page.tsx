@@ -10,6 +10,11 @@ interface Organization {
   callsign: string;
 }
 
+interface User {
+  id: string;
+  username: string;
+}
+
 export default function NewUnitPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -18,6 +23,8 @@ export default function NewUnitPage() {
     organizationId: '',
   });
   const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -60,6 +67,15 @@ export default function NewUnitPage() {
 
   const handleOrgChange = (orgId: string) => {
     setForm({ ...form, organizationId: orgId, userId: '' });
+    setUsers([]);
+    if (!orgId) return;
+
+    setLoadingUsers(true);
+    fetch(`/api/users?organizationId=${orgId}`)
+      .then((r) => r.json())
+      .then((d) => setUsers(d.data ?? []))
+      .catch(() => setUsers([]))
+      .finally(() => setLoadingUsers(false));
   };
 
   const inputClass =
@@ -109,17 +125,28 @@ export default function NewUnitPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Benutzer-ID *</label>
-            <input
+            <label className={labelClass}>Benutzer *</label>
+            <select
               className={inputClass}
               value={form.userId}
               onChange={(e) => setForm({ ...form, userId: e.target.value })}
-              placeholder="Benutzer-ID eingeben"
               required
-            />
-            <p className="text-slate-500 text-xs mt-1">
-              Die Benutzer-ID des zugewiesenen Mitarbeiters
-            </p>
+              disabled={!form.organizationId || loadingUsers}
+            >
+              <option value="">
+                {loadingUsers ? 'Lade Benutzer…' : '— Benutzer wählen —'}
+              </option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.username}
+                </option>
+              ))}
+            </select>
+            {form.organizationId && !loadingUsers && users.length === 0 && (
+              <p className="text-slate-500 text-xs mt-1">
+                Keine Benutzer in dieser Organisation gefunden.
+              </p>
+            )}
           </div>
 
           {error && (
