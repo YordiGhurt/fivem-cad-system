@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createAdminLog } from '@/lib/adminLog';
 import { checkPermission } from '@/lib/permissions';
 import { z } from 'zod';
 
@@ -76,5 +77,6 @@ export async function DELETE(
 
   const { id } = await params;
   await prisma.dispatchLog.delete({ where: { id } });
+  await createAdminLog('DATA_DELETED', `Schichtbucheintrag ${id} gelöscht`, session.user.id, id, 'DispatchLog');
   return NextResponse.json({ success: true });
 }

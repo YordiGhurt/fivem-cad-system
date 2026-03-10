@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const causeLabels: Record<string, string> = {
   NATURAL: 'Natürlich',
@@ -30,9 +31,10 @@ interface DeathCertificateDetailClientProps {
     createdAt: Date;
     updatedAt: Date;
   };
+  isAdmin?: boolean;
 }
 
-export function DeathCertificateDetailClient({ cert }: DeathCertificateDetailClientProps) {
+export function DeathCertificateDetailClient({ cert, isAdmin }: DeathCertificateDetailClientProps) {
   const [pdfUrl, setPdfUrl] = useState(cert.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -75,6 +77,13 @@ export function DeathCertificateDetailClient({ cert }: DeathCertificateDetailCli
           {cert.citizenId && <p className="text-slate-400 text-sm mt-1">ID: {cert.citizenId}</p>}
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <DeleteButton
+              id={cert.id}
+              endpoint="/api/death-certificates"
+              redirectTo="/dashboard/death-certificates"
+            />
+          )}
           {pdfUrl ? (
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">

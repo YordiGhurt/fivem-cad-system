@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createAdminLog } from '@/lib/adminLog';
 import { z } from 'zod';
 
 const updateSchema = z
@@ -62,9 +63,14 @@ export async function DELETE(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERVISOR') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const { id } = await params;
     await prisma.unit.delete({ where: { id } });
+    await createAdminLog('DATA_DELETED', `Einheit ${id} gelöscht`, session.user.id, id, 'Unit');
     return NextResponse.json({ message: 'Deleted' });
   } catch (error) {
     console.error('[units/:id DELETE]', error);

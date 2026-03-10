@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createAdminLog } from '@/lib/adminLog';
 import { z } from 'zod';
 
 const updateSchema = z.object({
@@ -57,5 +58,26 @@ export async function PUT(
   } catch (error) {
     console.error('[death-certificates/:id PUT]', error);
     return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+  }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (session.user.role !== 'ADMIN')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  try {
+    const { id } = await params;
+    await prisma.deathCertificate.delete({ where: { id } });
+    await createAdminLog('DATA_DELETED', `Totenschein ${id} gelöscht`, session.user.id, id, 'DeathCertificate');
+    return NextResponse.json({ message: 'Deleted' });
+  } catch (error) {
+    console.error('[death-certificates/:id DELETE]', error);
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 }

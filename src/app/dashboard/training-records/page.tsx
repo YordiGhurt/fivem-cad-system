@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 interface SearchParams {
   organizationId?: string;
@@ -29,6 +30,7 @@ export default async function TrainingRecordsPage({
   const sp = await searchParams;
   const organizationId = sp.organizationId ?? (session?.user?.organizationId ?? undefined);
   const search = sp.search ?? '';
+  const isAdmin = session?.user?.role === 'ADMIN';
   const page = parseInt(sp.page ?? '1');
   const pageSize = 20;
 
@@ -110,12 +112,13 @@ export default async function TrainingRecordsPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Organisation</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Ergebnis</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Datum</th>
+              {isAdmin && <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {records.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-slate-500">
                   Keine Ausbildungsakten gefunden
                 </td>
               </tr>
@@ -135,6 +138,11 @@ export default async function TrainingRecordsPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(r.date), 'dd.MM.yyyy')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3">
+                      <DeleteButton id={r.id} endpoint="/api/training-records" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

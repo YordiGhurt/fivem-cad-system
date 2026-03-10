@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 const causeLabels: Record<string, string> = {
   NATURAL: 'Natürlich',
@@ -30,7 +31,8 @@ export default async function DeathCertificatesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const sp = await searchParams;
   const search = sp.search ?? '';
@@ -114,12 +116,13 @@ export default async function DeathCertificatesPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Todesort</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Arzt</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Organisation</th>
+              {isAdmin && <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {certs.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-slate-500">
                   Keine Totenscheine gefunden
                 </td>
               </tr>
@@ -139,6 +142,11 @@ export default async function DeathCertificatesPage({
                   <td className="px-4 py-3 text-slate-400 text-sm max-w-40 truncate">{cert.locationOfDeath}</td>
                   <td className="px-4 py-3 text-slate-400 text-sm">{cert.doctor.username}</td>
                   <td className="px-4 py-3 text-slate-400 text-sm">{cert.organization.name}</td>
+                  {isAdmin && (
+                    <td className="px-4 py-3">
+                      <DeleteButton id={cert.id} endpoint="/api/death-certificates" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 interface MedicalRecordDetailClientProps {
   record: {
@@ -22,9 +23,10 @@ interface MedicalRecordDetailClientProps {
     createdAt: Date;
     updatedAt: Date;
   };
+  isAdmin?: boolean;
 }
 
-export function MedicalRecordDetailClient({ record }: MedicalRecordDetailClientProps) {
+export function MedicalRecordDetailClient({ record, isAdmin }: MedicalRecordDetailClientProps) {
   const [pdfUrl, setPdfUrl] = useState(record.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -69,6 +71,13 @@ export function MedicalRecordDetailClient({ record }: MedicalRecordDetailClientP
           {record.citizenId && <p className="text-slate-400 text-sm mt-1">ID: {record.citizenId}</p>}
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <DeleteButton
+              id={record.id}
+              endpoint="/api/medical-records"
+              redirectTo="/dashboard/medical-records"
+            />
+          )}
           {pdfUrl ? (
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">

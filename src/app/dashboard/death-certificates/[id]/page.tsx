@@ -9,7 +9,8 @@ export default async function DeathCertificateDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const { id } = await params;
 
   const cert = await prisma.deathCertificate.findUnique({
@@ -19,5 +20,5 @@ export default async function DeathCertificateDetailPage({
 
   if (!cert) notFound();
 
-  return <DeathCertificateDetailClient cert={cert} />;
+  return <DeathCertificateDetailClient cert={cert} isAdmin={isAdmin} />;
 }

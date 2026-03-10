@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 interface SearchParams {
   organizationId?: string;
@@ -18,6 +19,7 @@ export default async function DispatchLogsPage({
 
   const sp = await searchParams;
   const organizationId = sp.organizationId ?? (session?.user?.organizationId ?? undefined);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const page = parseInt(sp.page ?? '1');
   const pageSize = 20;
 
@@ -66,12 +68,13 @@ export default async function DispatchLogsPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Schichtende</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Einsätze</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Erstellt</th>
+              {isAdmin && <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {logs.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-slate-500">
                   Keine Schichteinträge gefunden
                 </td>
               </tr>
@@ -93,6 +96,11 @@ export default async function DispatchLogsPage({
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(log.createdAt), 'dd.MM.yyyy HH:mm')}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3">
+                      <DeleteButton id={log.id} endpoint="/api/dispatch-logs" />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

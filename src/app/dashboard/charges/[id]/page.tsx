@@ -9,7 +9,8 @@ export default async function ChargeDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const { id } = await params;
 
   const charge = await prisma.charge.findUnique({
@@ -19,5 +20,5 @@ export default async function ChargeDetailPage({
 
   if (!charge) notFound();
 
-  return <ChargeDetailClient charge={charge} />;
+  return <ChargeDetailClient charge={charge} isAdmin={isAdmin} />;
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 interface ReportDetailClientProps {
   report: {
@@ -16,9 +17,10 @@ interface ReportDetailClientProps {
     author: { id: string; username: string };
     incident: { id: string; caseNumber: string; type: string } | null;
   };
+  isAdmin?: boolean;
 }
 
-export function ReportDetailClient({ report }: ReportDetailClientProps) {
+export function ReportDetailClient({ report, isAdmin }: ReportDetailClientProps) {
   const [pdfUrl, setPdfUrl] = useState(report.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -62,6 +64,13 @@ export function ReportDetailClient({ report }: ReportDetailClientProps) {
           <h1 className="text-2xl font-bold text-white">{report.title}</h1>
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <DeleteButton
+              id={report.id}
+              endpoint="/api/reports"
+              redirectTo="/dashboard/reports"
+            />
+          )}
           {pdfUrl ? (
             <a
               href={pdfUrl}

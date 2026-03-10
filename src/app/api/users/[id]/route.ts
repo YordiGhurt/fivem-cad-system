@@ -10,6 +10,7 @@ const patchSchema = z
     role: z.enum(['ADMIN', 'SUPERVISOR', 'OFFICER', 'DISPATCHER', 'USER']).optional(),
     active: z.boolean().optional(),
     organizationId: z.string().nullable().optional(),
+    rankId: z.string().nullable().optional(),
   })
   .partial();
 

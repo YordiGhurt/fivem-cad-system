@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { DeleteButton } from '@/components/DeleteButton';
 
 interface SearchParams {
   organizationId?: string;
@@ -24,6 +25,7 @@ export default async function OrgWarningsPage({
 
   const sp = await searchParams;
   const organizationId = sp.organizationId ?? (session?.user?.organizationId ?? undefined);
+  const isAdmin = session?.user?.role === 'ADMIN';
   const page = parseInt(sp.page ?? '1');
   const pageSize = 20;
 
@@ -73,12 +75,13 @@ export default async function OrgWarningsPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Organisation</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Status</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Datum</th>
+              {isAdmin && <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {warnings.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-slate-500">
                   Keine Abmahnungen gefunden
                 </td>
               </tr>
@@ -102,6 +105,11 @@ export default async function OrgWarningsPage({
                     <td className="px-4 py-3 text-slate-400 text-xs">
                       {format(new Date(w.createdAt), 'dd.MM.yyyy HH:mm')}
                     </td>
+                    {isAdmin && (
+                      <td className="px-4 py-3">
+                        <DeleteButton id={w.id} endpoint="/api/org-warnings" />
+                      </td>
+                    )}
                   </tr>
                 );
               })
