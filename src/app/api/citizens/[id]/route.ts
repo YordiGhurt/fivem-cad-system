@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { createAdminLog } from '@/lib/adminLog';
 import { z } from 'zod';
 
 const updateSchema = z
@@ -77,11 +76,38 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    await prisma.citizen.delete({ where: { id } });
-    await createAdminLog('DATA_DELETED', `Bürger ${id} gelöscht`, session.user.id, id, 'Citizen');
+
+    const citizen = await prisma.citizen.findUnique({ where: { id } });
+    if (!citizen) return NextResponse.json({ error: 'Bürger nicht gefunden' }, { status: 404 });
+
+    const cId = citizen.citizenId;
+
+    await prisma.$transaction(async (tx) => {
+      // Charges reference Verdict and CaseFile, so delete first
+      await tx.charge.deleteMany({ where: { citizenId: cId } });
+      // Verdicts reference CaseFile, so delete before CaseFile
+      await tx.verdict.deleteMany({ where: { citizenId: cId } });
+      // CaseDocuments cascade automatically when CaseFile is deleted
+      await tx.caseFile.deleteMany({ where: { citizenId: cId } });
+      await tx.weapon.deleteMany({ where: { ownerId: cId } });
+      await tx.vehicle.deleteMany({ where: { ownerId: cId } });
+      await tx.medicalRecord.deleteMany({ where: { citizenId: cId } });
+      await tx.deathCertificate.deleteMany({ where: { citizenId: cId } });
+      await tx.citizen.delete({ where: { id } });
+      await tx.adminLog.create({
+        data: {
+          action: 'DATA_DELETED',
+          description: `Bürger ${citizen.firstName} ${citizen.lastName} (${cId}) gelöscht`,
+          performedById: session.user.id,
+          targetId: id,
+          targetType: 'Citizen',
+        },
+      });
+    });
+
     return NextResponse.json({ message: 'Deleted' });
   } catch (error) {
     console.error('[citizens/:id DELETE]', error);
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Fehler beim Löschen des Bürgers' }, { status: 500 });
   }
 }
