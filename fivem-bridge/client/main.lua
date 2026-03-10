@@ -169,6 +169,24 @@ RegisterNUICallback('setUnitId', function(data, cb)
     cb({})
 end)
 
+-- NUI-Callback: Waffen synchronisieren
+RegisterNUICallback('syncWeapons', function(data, cb)
+    TriggerServerEvent('cad:server:syncWeapons')
+    cb({})
+end)
+
+-- Befehl: /syncweapons – Waffen manuell synchronisieren
+RegisterCommand('syncweapons', function()
+    TriggerServerEvent('cad:server:syncWeapons')
+    QBCore.Functions.Notify('Waffen werden synchronisiert...', 'primary')
+end, false)
+
+-- Befehl: /syncvehicles – Fahrzeuge manuell synchronisieren
+RegisterCommand('syncvehicles', function()
+    TriggerServerEvent('cad:server:syncVehicles')
+    QBCore.Functions.Notify('Fahrzeuge werden synchronisiert...', 'primary')
+end, false)
+
 -- ESC schließt CAD
 CreateThread(function()
     while true do

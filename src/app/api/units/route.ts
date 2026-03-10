@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { emitter } from '@/lib/sse';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 
 const createSchema = z.object({
   callsign: z.string().min(1),
@@ -40,6 +40,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createSchema.parse(body);
 
+    const userExists = await prisma.user.findUnique({ where: { id: data.userId } });
+    if (!userExists) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const orgExists = await prisma.organization.findUnique({ where: { id: data.organizationId } });
+    if (!orgExists) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    }
+
     const unit = await prisma.unit.create({
       data,
       include: { user: true, organization: true },
@@ -49,7 +59,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ data: unit }, { status: 201 });
   } catch (error) {
+    if (error instanceof ZodError) {
+      console.error('[units POST] Validation error', error.errors);
+      return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 422 });
+    }
     console.error('[units POST]', error);
-    return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

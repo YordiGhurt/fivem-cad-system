@@ -12,3 +12,9 @@ Config.AutoSync = true
 
 -- Synchronisationsintervall in Millisekunden
 Config.SyncInterval = 30000
+
+-- Fahrzeug-Sync aktivieren
+Config.SyncVehicles = true
+
+-- Waffen-Sync aktivieren
+Config.SyncWeapons = true
