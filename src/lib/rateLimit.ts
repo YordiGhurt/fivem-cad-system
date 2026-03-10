@@ -5,6 +5,16 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 
+// Cleanup expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of store.entries()) {
+    if (now > entry.resetAt) {
+      store.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
+
 /**
  * Check if the given IP is within the rate limit.
  * Returns true if the request is allowed, false if it should be blocked.

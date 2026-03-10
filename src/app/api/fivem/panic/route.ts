@@ -24,13 +24,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { steamId, unitCallsign, location, organizationId } = schema.parse(body);
 
-    // Find user by steamId to get organizationId
+    // Find user by steamId
     const user = await prisma.user.findFirst({
       where: { steamId },
-      select: { organizationId: true },
+      select: { id: true, organizationId: true },
     });
 
-    const orgId = organizationId ?? user?.organizationId;
+    if (!user) {
+      return NextResponse.json({ error: 'User not found for given steamId' }, { status: 404 });
+    }
+
+    const orgId = organizationId ?? user.organizationId;
+
+    if (!orgId) {
+      return NextResponse.json({ error: 'No organization found for this user' }, { status: 400 });
+    }
 
     // Create panic incident
     const caseNumber = `PANIC-${Date.now()}`;
@@ -42,22 +50,20 @@ export async function POST(req: NextRequest) {
         location: location ?? 'Unbekannt',
         priority: 1,
         status: 'ACTIVE',
-        organizationId: orgId ?? '',
-        createdById: (await prisma.user.findFirst({ where: { steamId }, select: { id: true } }))?.id ?? '',
+        organizationId: orgId,
+        createdById: user.id,
       },
     });
 
     // Notify all DISPATCHER/OFFICER/SUPERVISOR/ADMIN in the organization
-    if (orgId) {
-      await notifyOrganizationMembers(
-        orgId,
-        ['ADMIN', 'SUPERVISOR', 'DISPATCHER', 'OFFICER'],
-        '🚨 PANIC BUTTON',
-        `Officer ${unitCallsign} braucht sofortige Hilfe! Standort: ${location ?? 'Unbekannt'}`,
-        'error',
-        '/dashboard/incidents',
-      );
-    }
+    await notifyOrganizationMembers(
+      orgId,
+      ['ADMIN', 'SUPERVISOR', 'DISPATCHER', 'OFFICER'],
+      '🚨 PANIC BUTTON',
+      `Officer ${unitCallsign} braucht sofortige Hilfe! Standort: ${location ?? 'Unbekannt'}`,
+      'error',
+      '/dashboard/incidents',
+    );
 
     return NextResponse.json({ message: 'Panic alert sent' });
   } catch (error) {

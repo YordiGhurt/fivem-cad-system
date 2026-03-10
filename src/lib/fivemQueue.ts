@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 export interface FivemQueueEvent {
   id: string;
   type: string;
@@ -16,7 +18,7 @@ if (!globalThis.__fivemQueue) {
 
 export function enqueueEvent(type: string, payload: Record<string, unknown>): void {
   const event: FivemQueueEvent = {
-    id: Math.random().toString(36).slice(2),
+    id: randomUUID(),
     type,
     payload,
     createdAt: Date.now(),

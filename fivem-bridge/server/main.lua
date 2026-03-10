@@ -157,7 +157,7 @@ RegisterNetEvent('cad:server:panicButton', function(callsign, location)
         if statusCode == 200 then
             print('[CAD Bridge] Panic Button gesendet für: ' .. callsign)
         else
-            print('[CAD Bridge] Panic-Fehler: ' .. tostring(status))
+            print('[CAD Bridge] Panic-Fehler: ' .. tostring(statusCode))
         end
     end)
 end)
