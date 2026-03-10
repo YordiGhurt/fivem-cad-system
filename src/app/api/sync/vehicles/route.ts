@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       ),
     );
 
-    return NextResponse.json({ data: upserted });
+    return NextResponse.json({ success: true, count: upserted.length });
   } catch (error) {
     if (error instanceof ZodError) {
       console.error('[sync/vehicles] Validation error', error.errors);
