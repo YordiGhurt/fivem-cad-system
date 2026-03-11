@@ -41,21 +41,28 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    // FiveM Ingame-Login: Spielername als Benutzername, Bürger-ID als Passwort.
+    // Dies umgeht Cookie/JWT-Probleme im CEF-Browser von FiveM, da der Login
+    // synchron per standard NextAuth-Credentials-Flow erfolgt – kein Token-Polling nötig.
     CredentialsProvider({
-      id: 'fivem-token',
-      name: 'FiveM Token',
+      id: 'fivem-credentials',
+      name: 'FiveM Credentials',
       credentials: {
-        userId: { label: 'User ID', type: 'text' },
+        username: { label: 'Spielername', type: 'text' },
+        password: { label: 'Bürger-ID', type: 'text' },
       },
       async authorize(credentials) {
-        if (!credentials?.userId) return null;
+        if (!credentials?.username || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
-          where: { id: credentials.userId },
+          where: { username: credentials.username },
           include: { organization: true },
         });
 
         if (!user || !user.active) return null;
+
+        // Bürger-ID als Authentifizierungsmerkmal – kein Passwort-Hash nötig
+        if (user.citizenId !== credentials.password) return null;
 
         return {
           id: user.id,

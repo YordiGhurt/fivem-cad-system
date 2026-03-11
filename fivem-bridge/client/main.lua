@@ -5,11 +5,11 @@ local QBCore = exports['qb-core']:GetCoreObject()
 local cadOpen = false
 local cadUnitCallsign = nil
 
--- CAD-Interface öffnen (mit Token-basiertem Login)
-local function openCADWithToken(token, citizenid)
+-- CAD-Interface öffnen (mit Credentials-basiertem Login: Spielername + Bürger-ID)
+local function openCADWithCredentials(username, citizenid)
     if cadOpen then return end
     cadOpen = true
-    local url = Config.CAD_URL .. '/auth/fivem?token=' .. token .. '&citizenid=' .. citizenid
+    local url = Config.CAD_URL .. '/auth/fivem?username=' .. username .. '&citizenid=' .. citizenid
     SendNUIMessage({
         action = 'open',
         url = url,
@@ -25,23 +25,23 @@ local function closeCAD()
     SetNuiFocus(false, false)
 end
 
--- Event vom Server: CAD mit Token öffnen oder Fehlermeldung anzeigen
-RegisterNetEvent('cad:client:openCAD', function(token, citizenid, errorMsg)
+-- Event vom Server: CAD mit Credentials öffnen oder Fehlermeldung anzeigen
+RegisterNetEvent('cad:client:openCAD', function(username, citizenid, errorMsg)
     if errorMsg then
         QBCore.Functions.Notify(errorMsg, 'error', 5000)
         return
     end
-    if token and citizenid then
-        openCADWithToken(token, citizenid)
+    if username and citizenid then
+        openCADWithCredentials(username, citizenid)
     end
 end)
 
--- Befehl: /cad - CAD öffnen (Token-basiert)
+-- Befehl: /cad - CAD öffnen (Credentials-basiert)
 RegisterCommand('cad', function()
     if cadOpen then
         closeCAD()
     else
-        TriggerServerEvent('cad:server:requestToken')
+        TriggerServerEvent('cad:server:requestLogin')
     end
 end, false)
 
