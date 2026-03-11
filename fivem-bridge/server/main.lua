@@ -32,6 +32,69 @@ local function cadApiGet(endpoint, callback)
     })
 end
 
+-- Jobs aus QBCore.Shared.Jobs lesen und ans CAD senden
+-- Nur Jobs mit mehr als einem Rang werden synchronisiert
+local function syncJobsToCAD()
+    local jobs = QBCore.Shared.Jobs
+    if not jobs then
+        print('[CAD Bridge] QBCore.Shared.Jobs nicht gefunden')
+        return
+    end
+
+    local jobList = {}
+
+    for jobName, jobData in pairs(jobs) do
+        -- Zähle Ränge
+        local gradeCount = 0
+        for _ in pairs(jobData.grades or {}) do
+            gradeCount = gradeCount + 1
+        end
+
+        -- Nur Jobs mit mehr als einem Rang synchronisieren
+        if gradeCount >= 2 then
+            local grades = {}
+            for gradeKey, gradeData in pairs(jobData.grades or {}) do
+                local level = tonumber(gradeKey) or 0
+                table.insert(grades, {
+                    level = level,
+                    name = gradeData.name or ('Rang ' .. gradeKey),
+                    isBoss = gradeData.isboss == true,
+                })
+            end
+
+            -- Ränge nach Level sortieren
+            table.sort(grades, function(a, b) return a.level < b.level end)
+
+            table.insert(jobList, {
+                name = jobName,
+                label = jobData.label or jobName,
+                type = jobData.type or nil,
+                grades = grades,
+            })
+        end
+    end
+
+    if #jobList == 0 then
+        print('[CAD Bridge] Keine geeigneten Jobs zum Synchronisieren gefunden')
+        return
+    end
+
+    cadApiPost('/api/sync/jobs', {
+        jobs = jobList,
+    }, function(status, response)
+        if status == 200 then
+            local ok, data = pcall(json.decode, response)
+            if ok and data then
+                print('[CAD Bridge] Jobs synchronisiert: ' .. tostring(data.synced) .. ' Organisationen')
+            else
+                print('[CAD Bridge] Jobs synchronisiert')
+            end
+        else
+            print('[CAD Bridge] Jobs-Sync-Fehler: ' .. tostring(status))
+        end
+    end)
+end
+
 -- Fahrzeuge aus der Datenbank laden und synchronisieren (QBCore: player_vehicles Tabelle)
 local function syncVehiclesFromDB(citizenid)
     if not Config.SyncVehicles then return end
@@ -138,7 +201,7 @@ local function syncWeaponsToCAD(citizenid, items)
     end)
 end
 
--- Spieler-Daten synchronisieren
+-- Spieler-Daten synchronisieren (inkl. metadata.licences)
 local function syncPlayerToCAD(source)
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return end
@@ -148,6 +211,13 @@ local function syncPlayerToCAD(source)
 
     if not citizenid or not charinfo then return end
 
+    -- Lizenzen aus metadata lesen
+    local licences = nil
+    local metadata = Player.PlayerData.metadata
+    if metadata and metadata.licences then
+        licences = metadata.licences
+    end
+
     cadApiPost('/api/sync/player', {
         citizenId = citizenid,
         steamId = GetPlayerIdentifierByType(source, 'steam') or '',
@@ -155,6 +225,7 @@ local function syncPlayerToCAD(source)
         lastName = charinfo.lastname or '',
         dateOfBirth = charinfo.birthdate or '',
         phone = charinfo.phone or '',
+        licences = licences,
     }, function(status, response)
         if status == 200 then
             print('[CAD Bridge] Spieler synchronisiert: ' .. citizenid)
@@ -172,6 +243,57 @@ local function syncPlayerToCAD(source)
         end
     end)
 end
+
+-- Token für CAD-Login anfordern und an Client senden
+RegisterNetEvent('cad:server:requestToken', function()
+    local source = source
+    local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then return end
+
+    local citizenid = Player.PlayerData.citizenid
+    local job = Player.PlayerData.job
+
+    if not citizenid or not job then
+        TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'Kein CAD-Zugang – keine Spielerdaten gefunden.')
+        return
+    end
+
+    -- Prüfe ob der Job mehr als einen Rang hat
+    local jobData = QBCore.Shared.Jobs[job.name]
+    if not jobData then
+        TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'Kein CAD-Zugang – unbekannter Job.')
+        return
+    end
+
+    local gradeCount = 0
+    for _ in pairs(jobData.grades or {}) do
+        gradeCount = gradeCount + 1
+    end
+
+    if gradeCount < 2 then
+        TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'Kein CAD-Zugang – dein Job hat keinen CAD-Zugriff.')
+        return
+    end
+
+    -- Token beim CAD anfordern
+    cadApiPost('/api/auth/fivem/token', {
+        citizenId = citizenid,
+        jobName = job.name,
+        jobGradeLevel = job.grade.level,
+        jobGradeName = job.grade.name,
+    }, function(status, response)
+        if status == 200 then
+            local ok, data = pcall(json.decode, response)
+            if ok and data and data.token then
+                TriggerClientEvent('cad:client:openCAD', source, data.token, citizenid, nil)
+            else
+                TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'CAD-Login fehlgeschlagen – ungültige Antwort.')
+            end
+        else
+            TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'CAD-Login fehlgeschlagen – Server nicht erreichbar.')
+        end
+    end)
+end)
 
 -- Event: Spieler betritt Server
 AddEventHandler('playerConnecting', function()
@@ -352,5 +474,23 @@ if Config.AutoSync then
     end)
 end
 
-print('[CAD Bridge] Server-Script geladen')
+-- Jobs beim Serverstart synchronisieren
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName == GetCurrentResourceName() then
+        -- Kurz warten damit QBCore vollständig geladen ist
+        SetTimeout(5000, function()
+            print('[CAD Bridge] Starte Jobs-Synchronisierung...')
+            syncJobsToCAD()
+        end)
+    end
+end)
 
+-- Jobs bei txAdmin Server-Neustart synchronisieren
+AddEventHandler('txAdmin:serverRestarted', function()
+    SetTimeout(5000, function()
+        print('[CAD Bridge] txAdmin Neustart – Starte Jobs-Synchronisierung...')
+        syncJobsToCAD()
+    end)
+end)
+
+print('[CAD Bridge] Server-Script geladen')

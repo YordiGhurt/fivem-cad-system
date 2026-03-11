@@ -6,6 +6,7 @@ import { prisma } from './prisma';
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
+      id: 'credentials',
       name: 'credentials',
       credentials: {
         username: { label: 'Username', type: 'text' },
@@ -23,6 +24,31 @@ export const authOptions: NextAuthOptions = {
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
+
+        return {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          organizationId: user.organizationId ?? undefined,
+        };
+      },
+    }),
+    CredentialsProvider({
+      id: 'fivem-token',
+      name: 'FiveM Token',
+      credentials: {
+        userId: { label: 'User ID', type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.userId) return null;
+
+        const user = await prisma.user.findUnique({
+          where: { id: credentials.userId },
+          include: { organization: true },
+        });
+
+        if (!user || !user.active) return null;
 
         return {
           id: user.id,

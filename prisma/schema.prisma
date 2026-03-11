@@ -326,6 +326,7 @@ model Citizen {
   nationality       String?
   image             String?
   notes             String?            @db.Text
+  licences          Json?
   vehicles          Vehicle[]
   weapons           Weapon[]
   verdicts          Verdict[]
@@ -642,4 +643,15 @@ model Notification {
   read      Boolean  @default(false)
   link      String?
   createdAt DateTime @default(now())
+}
+
+model FivemAuthToken {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  citizenId  String
+  jobName    String
+  gradeLevel Int
+  gradeName  String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
 }

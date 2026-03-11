@@ -9,6 +9,7 @@ const syncSchema = z.object({
   lastName: z.string(),
   dateOfBirth: z.string().optional(),
   phone: z.string().optional(),
+  licences: z.record(z.boolean()).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
+        ...(data.licences !== undefined && { licences: data.licences }),
       },
       create: {
         citizenId: data.citizenId,
@@ -34,6 +36,7 @@ export async function POST(req: NextRequest) {
         lastName: data.lastName,
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
         phone: data.phone,
+        licences: data.licences,
       },
     });
 
