@@ -37,16 +37,24 @@ local function syncVehiclesFromDB(citizenid)
     if not Config.SyncVehicles then return end
     if not citizenid or citizenid == '' then return end
 
-    exports['oxmysql']:execute('SELECT plate, vehicle FROM player_vehicles WHERE citizenid = ?', {citizenid}, function(result)
+    exports['oxmysql']:execute('SELECT plate, vehicle, mods FROM player_vehicles WHERE citizenid = ?', {citizenid}, function(result)
         if result and #result > 0 then
             local vehicleList = {}
             for _, row in ipairs(result) do
-                local ok, vehicleData = pcall(json.decode, row.vehicle or '{}')
-                if not ok then vehicleData = {} end
+                -- `vehicle` ist direkt der Modellname (kein JSON)
+                -- `mods` ist ein separates JSON mit Fahrzeugmodifikationen
+                local color = '0'
+                if row.mods and row.mods ~= '{}' then
+                    local ok, mods = pcall(json.decode, row.mods)
+                    if ok and mods and type(mods) == 'table' then
+                        color = tostring(mods.color1 or mods.color or 0)
+                    end
+                end
+
                 table.insert(vehicleList, {
                     plate = row.plate,
-                    model = vehicleData.model or 'Unbekannt',
-                    color = tostring(vehicleData.color1 or 0),
+                    model = row.vehicle or 'Unbekannt',
+                    color = color,
                 })
             end
 
