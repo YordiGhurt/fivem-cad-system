@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
 function FivemAuthContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
+  // Delay to ensure the browser has persisted the httpOnly session cookie
+  const COOKIE_PERSISTENCE_DELAY_MS = 500;
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -51,7 +52,9 @@ function FivemAuthContent() {
           return;
         }
 
-        router.push('/dashboard');
+        // Kurz warten damit der Cookie sicher gespeichert ist, dann hard-navigate
+        await new Promise(resolve => setTimeout(resolve, COOKIE_PERSISTENCE_DELAY_MS));
+        window.location.href = '/dashboard';
       } catch {
         setStatus('error');
         setErrorMsg('Verbindungsfehler. Bitte erneut versuchen.');
@@ -59,7 +62,7 @@ function FivemAuthContent() {
     }
 
     doLogin();
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   if (status === 'error') {
     return (
