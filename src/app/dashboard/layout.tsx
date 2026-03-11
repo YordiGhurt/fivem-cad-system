@@ -33,6 +33,7 @@ import {
   Menu,
   X,
   ShieldCheck,
+  SendHorizontal,
 } from 'lucide-react';
 import RealtimeProvider from '@/components/RealtimeProvider';
 import NotificationBell from '@/components/NotificationBell';
@@ -56,6 +57,8 @@ interface OrgPermission {
   canViewDispatchLog: boolean;
 }
 
+type OrgType = 'POLICE' | 'FIRE' | 'AMBULANCE' | 'DOJ' | 'CUSTOM' | null;
+
 type NavItem = {
   href: string;
   label: string;
@@ -70,7 +73,134 @@ type NavGroup = {
   items: NavItem[];
 };
 
-const navGroups: NavGroup[] = [
+function getNavGroupsForOrgType(orgType: OrgType): NavGroup[] {
+  // Admin/Supervisor – full access (handled separately by isAdmin/isSupervisor checks)
+  // Department-spezifische Navigationsstruktur
+
+  const adminGroup: NavGroup = {
+    label: 'Verwaltung',
+    items: [
+      { href: '/dashboard/stats', label: 'Statistiken', icon: BarChart2, supervisorOnly: true },
+      { href: '/dashboard/admin-log', label: 'Admin-Log', icon: ScrollText, supervisorOnly: true },
+      { href: '/dashboard/admin', label: 'Admin', icon: Settings, adminOnly: true },
+    ],
+  };
+
+  if (orgType === 'POLICE') {
+    return [
+      {
+        label: 'Dispatch',
+        items: [
+          { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
+          { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' },
+          { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' },
+          { href: '/dashboard/map', label: 'Karte', icon: Map },
+        ],
+      },
+      {
+        label: 'Akten & Bürger',
+        items: [
+          { href: '/dashboard/citizens', label: 'Bürger', icon: Users, permKey: 'canViewCitizens' },
+          { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car, permKey: 'canViewVehicles' },
+          { href: '/dashboard/licenses', label: 'Lizenzen', icon: ShieldCheck, permKey: 'canViewVehicles' },
+          { href: '/dashboard/warrants', label: 'Haftbefehle', icon: FileWarning, permKey: 'canViewWarrants' },
+          { href: '/dashboard/reports', label: 'Berichte', icon: FileText, permKey: 'canViewReports' },
+          { href: '/dashboard/case-files', label: 'Polizeiakten', icon: FolderOpen, permKey: 'canViewCaseFiles' },
+        ],
+      },
+      {
+        label: 'Organisation',
+        items: [
+          { href: '/dashboard/org-news', label: 'Org-News', icon: Newspaper, permKey: 'canViewNews' },
+          { href: '/dashboard/org-warnings', label: 'Disziplinarakte', icon: AlertTriangle, permKey: 'canViewWarnings' },
+          { href: '/dashboard/training-records', label: 'Ausbildung', icon: GraduationCap, permKey: 'canViewTrainingRecords' },
+          { href: '/dashboard/dispatch-logs', label: 'Schichtbuch', icon: ClipboardList, permKey: 'canViewDispatchLog' },
+          { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
+        ],
+      },
+      adminGroup,
+    ];
+  }
+
+  if (orgType === 'DOJ') {
+    return [
+      {
+        label: 'DOJ',
+        items: [
+          { href: '/dashboard/org-news', label: 'Org-News', icon: Newspaper, permKey: 'canViewNews' },
+          { href: '/dashboard/citizens', label: 'Bürger', icon: Users, permKey: 'canViewCitizens' },
+          { href: '/dashboard/charges', label: 'Anklagen', icon: FileSearch, permKey: 'canViewCharges' },
+          { href: '/dashboard/verdicts', label: 'Urteile', icon: Gavel, permKey: 'canViewVerdicts' },
+          { href: '/dashboard/case-files', label: 'Eingegangene Akten', icon: SendHorizontal, permKey: 'canViewCaseFiles' },
+        ],
+      },
+      {
+        label: 'Recht & Gesetze',
+        items: [
+          { href: '/dashboard/laws', label: 'Gesetze', icon: Scale, permKey: 'canViewLaws' },
+          { href: '/dashboard/fine-catalog', label: 'Bußgeldkatalog', icon: BookOpen },
+        ],
+      },
+      {
+        label: 'Organisation',
+        items: [
+          { href: '/dashboard/org-warnings', label: 'Disziplinarakte', icon: AlertTriangle, permKey: 'canViewWarnings' },
+          { href: '/dashboard/training-records', label: 'Ausbildung', icon: GraduationCap, permKey: 'canViewTrainingRecords' },
+          { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
+        ],
+      },
+      adminGroup,
+    ];
+  }
+
+  if (orgType === 'AMBULANCE' || orgType === 'FIRE') {
+    return [
+      {
+        label: 'Dispatch',
+        items: [
+          { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
+          { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' },
+          { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' },
+          { href: '/dashboard/map', label: 'Karte', icon: Map },
+        ],
+      },
+      {
+        label: 'Medizin',
+        items: [
+          { href: '/dashboard/medical-records', label: 'Med. Akten', icon: Stethoscope, permKey: 'canViewMedicalRecords' },
+          { href: '/dashboard/death-certificates', label: 'Totenscheine', icon: HeartPulse, permKey: 'canViewDeathCerts' },
+        ],
+      },
+      {
+        label: 'Organisation',
+        items: [
+          { href: '/dashboard/org-news', label: 'Org-News', icon: Newspaper, permKey: 'canViewNews' },
+          { href: '/dashboard/org-warnings', label: 'Disziplinarakte', icon: AlertTriangle, permKey: 'canViewWarnings' },
+          { href: '/dashboard/training-records', label: 'Ausbildung', icon: GraduationCap, permKey: 'canViewTrainingRecords' },
+          { href: '/dashboard/dispatch-logs', label: 'Schichtbuch', icon: ClipboardList, permKey: 'canViewDispatchLog' },
+          { href: '/dashboard/organizations', label: 'Organisationen', icon: Building2 },
+        ],
+      },
+      adminGroup,
+    ];
+  }
+
+  // CUSTOM org type or no org: standard citizen view
+  return [
+    {
+      label: 'Bürger-Portal',
+      items: [
+        { href: '/dashboard/laws', label: 'Gesetze', icon: Scale },
+        { href: '/dashboard/fine-catalog', label: 'Bußgeldkatalog', icon: BookOpen },
+        { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car },
+      ],
+    },
+    adminGroup,
+  ];
+}
+
+// Vollständige Navigation für Admins/Supervisors
+const fullNavGroups: NavGroup[] = [
   {
     label: 'Dispatch',
     items: [
@@ -131,6 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: session } = useSession();
   const pathname = usePathname();
   const [orgPermissions, setOrgPermissions] = useState<OrgPermission | null>(null);
+  const [orgType, setOrgType] = useState<OrgType>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isAdmin = session?.user?.role === 'ADMIN';
@@ -140,18 +271,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const orgId = session?.user?.organizationId;
     if (!orgId) {
       setOrgPermissions(null);
+      setOrgType(null);
       return;
     }
     fetch(`/api/organizations/${orgId}/permissions`)
       .then((r) => r.json())
       .then((d) => setOrgPermissions(d.data ?? null))
       .catch(() => setOrgPermissions(null));
+    fetch(`/api/organizations/${orgId}`)
+      .then((r) => r.json())
+      .then((d) => setOrgType((d.data?.type as OrgType) ?? null))
+      .catch(() => setOrgType(null));
   }, [session?.user?.organizationId]);
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
+
+  // Für Admins/Supervisors die vollständige Navigation anzeigen
+  const navGroups = isAdmin || isSupervisor ? fullNavGroups : getNavGroupsForOrgType(orgType);
 
   const isNavItemVisible = (item: NavItem) => {
     // Admin-only items

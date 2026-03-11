@@ -32,8 +32,44 @@ local function cadApiGet(endpoint, callback)
     })
 end
 
--- Fahrzeuge synchronisieren
--- In QBCore sind Fahrzeuge als Key-Value-Pairs gespeichert (Key = Kennzeichen)
+-- Fahrzeuge aus der Datenbank laden und synchronisieren (QBCore: player_vehicles Tabelle)
+local function syncVehiclesFromDB(citizenid)
+    if not Config.SyncVehicles then return end
+    if not citizenid or citizenid == '' then return end
+
+    MySQL.query('SELECT plate, vehicle FROM player_vehicles WHERE citizenid = ?', {citizenid}, function(result)
+        if result and #result > 0 then
+            local vehicleList = {}
+            for _, row in ipairs(result) do
+                local ok, vehicleData = pcall(json.decode, row.vehicle or '{}')
+                if not ok then vehicleData = {} end
+                table.insert(vehicleList, {
+                    plate = row.plate,
+                    model = vehicleData.model or 'Unbekannt',
+                    color = tostring(vehicleData.color1 or 0),
+                })
+            end
+
+            if #vehicleList == 0 then return end
+
+            cadApiPost('/api/sync/vehicles', {
+                citizenId = citizenid,
+                vehicles = vehicleList,
+            }, function(status, response)
+                if status == 200 then
+                    print('[CAD Bridge] ' .. #vehicleList .. ' Fahrzeuge (DB) synchronisiert für: ' .. citizenid)
+                else
+                    print('[CAD Bridge] Fahrzeug-Sync-Fehler für ' .. citizenid .. ': ' .. tostring(status))
+                end
+            end)
+        else
+            print('[CAD Bridge] Keine Fahrzeuge in DB gefunden für: ' .. citizenid)
+        end
+    end)
+end
+
+-- Fahrzeuge synchronisieren (Fallback: PlayerData.vehicles für ältere QBCore-Versionen)
+-- In neueren QBCore-Versionen sind Fahrzeuge in der player_vehicles DB-Tabelle gespeichert
 local function syncVehiclesToCAD(citizenid, vehicles)
     if not Config.SyncVehicles then return end
     if not vehicles then return end
@@ -115,11 +151,8 @@ local function syncPlayerToCAD(source)
         if status == 200 then
             print('[CAD Bridge] Spieler synchronisiert: ' .. citizenid)
 
-            -- Fahrzeuge aus QBCore laden und synchronisieren
-            local vehicles = Player.PlayerData.vehicles
-            if vehicles then
-                syncVehiclesToCAD(citizenid, vehicles)
-            end
+            -- Fahrzeuge aus DB laden (zuverlässiger als PlayerData.vehicles)
+            syncVehiclesFromDB(citizenid)
 
             -- Waffen aus QBCore laden und synchronisieren
             local items = Player.PlayerData.items
@@ -150,7 +183,8 @@ AddEventHandler('QBCore:Server:PlayerLoaded', function(Player)
         SetTimeout(4000, function()
             local citizenid = Player.PlayerData.citizenid
             if citizenid then
-                syncVehiclesToCAD(citizenid, Player.PlayerData.vehicles)
+                -- Fahrzeuge aus DB laden (zuverlässiger als PlayerData.vehicles)
+                syncVehiclesFromDB(citizenid)
                 syncWeaponsToCAD(citizenid, Player.PlayerData.items)
             end
         end)
@@ -168,14 +202,14 @@ RegisterNetEvent('cad:server:syncWeapons', function()
     end
 end)
 
--- Manueller Fahrzeug-Sync (vom Client ausgelöst)
+-- Manueller Fahrzeug-Sync (vom Client ausgelöst) – verwendet DB-Lookup
 RegisterNetEvent('cad:server:syncVehicles', function()
     local source = source
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return end
     local citizenid = Player.PlayerData.citizenid
     if citizenid then
-        syncVehiclesToCAD(citizenid, Player.PlayerData.vehicles)
+        syncVehiclesFromDB(citizenid)
     end
 end)
 

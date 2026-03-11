@@ -1,9 +1,28 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
+import { useEffect } from 'react';
+import { MapContainer, ImageOverlay, Marker, Popup } from 'react-leaflet';
+import L, { CRS } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// GTA5 Weltkarte – Koordinatensystem
+// GTA5 Welt: X: -4096 bis 4096, Y: -4096 bis 4096
+// Leaflet CRS.Simple: lat = GTA5_Y, lng = GTA5_X
+//
+// Karten-Bild: Lege eine gta5-map.jpg in das /public/images/ Verzeichnis.
+// Ein frei verfügbares GTA5-Kartenbild findest du z.B. im FiveM-Forum oder
+// auf GitHub (z.B. https://github.com/nicog98/gta5-map-tiles).
+// Alternativ: CDN-URL direkt als GTA5_MAP_IMAGE_URL eintragen.
+const GTA5_MAP_IMAGE_URL = '/images/gta5-map.jpg';
+
+// GTA5-Kartengrenzen für Leaflet CRS.Simple
+const GTA5_BOUNDS: [[number, number], [number, number]] = [
+  [-4096, -4096], // Südwest (minY, minX)
+  [4096, 4096],   // Nordost (maxY, maxX)
+];
+
+// Mittelpunkt der GTA5-Karte
+const GTA5_CENTER: [number, number] = [0, 0];
 
 // Fix leaflet default icons in Next.js
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,20 +75,28 @@ export default function IncidentMap({ incidents }: Props) {
     (i) => i.coordinates && typeof i.coordinates.lat === 'number' && typeof i.coordinates.lng === 'number',
   );
 
+  // GTA5-Koordinaten: lat = GTA5_Y, lng = GTA5_X
+  // Falls Koordinaten als GTA5-Weltkoordinaten gespeichert wurden, direkt nutzen.
   const center: [number, number] = mapIncidents.length > 0
     ? [mapIncidents[0].coordinates!.lat, mapIncidents[0].coordinates!.lng]
-    : [51.505, -0.09];
+    : GTA5_CENTER;
 
   return (
     <MapContainer
+      crs={CRS.Simple}
       center={center}
-      zoom={13}
-      style={{ height: '100%', width: '100%', borderRadius: '0.75rem' }}
+      zoom={-1}
+      minZoom={-2}
+      maxZoom={3}
+      maxBounds={GTA5_BOUNDS}
+      maxBoundsViscosity={1.0}
+      style={{ height: '100%', width: '100%', borderRadius: '0.75rem', background: '#1e293b' }}
       className="z-0"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+      <ImageOverlay
+        url={GTA5_MAP_IMAGE_URL}
+        bounds={GTA5_BOUNDS}
+        opacity={1}
       />
       {mapIncidents.map((incident) => (
         <Marker

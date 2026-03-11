@@ -443,25 +443,27 @@ model Charge {
 
 // DOJ/LSPD – Parteiakten
 model CaseFile {
-  id           String         @id @default(cuid())
-  caseNumber   String         @unique
-  title        String
-  description  String         @db.Text
-  status       CaseFileStatus @default(OPEN)
-  citizenName  String?
-  citizenId    String?
-  citizen      Citizen?       @relation(fields: [citizenId], references: [citizenId])
-  assignedToId String?
-  assignedTo   User?          @relation("CaseFileAssignedTo", fields: [assignedToId], references: [id])
-  createdById  String
-  createdBy    User           @relation("CaseFileCreatedBy", fields: [createdById], references: [id])
-  charges      Charge[]
-  verdicts     Verdict[]
-  documents    CaseDocument[]
-  pdfUrl       String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  closedAt     DateTime?
+  id                 String         @id @default(cuid())
+  caseNumber         String         @unique
+  title              String
+  description        String         @db.Text
+  status             CaseFileStatus @default(OPEN)
+  citizenName        String?
+  citizenId          String?
+  citizen            Citizen?       @relation(fields: [citizenId], references: [citizenId])
+  assignedToId       String?
+  assignedTo         User?          @relation("CaseFileAssignedTo", fields: [assignedToId], references: [id])
+  createdById        String
+  createdBy          User           @relation("CaseFileCreatedBy", fields: [createdById], references: [id])
+  charges            Charge[]
+  verdicts           Verdict[]
+  documents          CaseDocument[]
+  pdfUrl             String?
+  transferredToOrgId String?
+  transferredAt      DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  closedAt           DateTime?
 }
 
 // Dokumente zu Parteiakten

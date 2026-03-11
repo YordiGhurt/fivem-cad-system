@@ -9,9 +9,11 @@ local cadUnitCallsign = nil
 local function openCAD()
     if cadOpen then return end
     cadOpen = true
+    local PlayerData = QBCore.Functions.GetPlayerData()
+    local citizenid = (PlayerData and PlayerData.citizenid) or ''
     SendNUIMessage({
         action = 'open',
-        url = Config.CAD_URL .. '/dashboard',
+        url = Config.CAD_URL .. '/dashboard?citizenid=' .. citizenid,
     })
     SetNuiFocus(true, true)
 end

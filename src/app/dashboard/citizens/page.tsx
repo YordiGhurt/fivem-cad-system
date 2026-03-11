@@ -37,7 +37,7 @@ export default async function CitizensPage({
   const [citizens, total] = await Promise.all([
     prisma.citizen.findMany({
       where,
-      include: { _count: { select: { vehicles: true, weapons: true } } },
+      include: { _count: { select: { vehicles: true } } },
       orderBy: { lastName: 'asc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -99,14 +99,13 @@ export default async function CitizensPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Telefon</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Adresse</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Fahrzeuge</th>
-              <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Waffen</th>
               {isAdmin && <th className="px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
             {citizens.length === 0 ? (
               <tr>
-                <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isAdmin ? 7 : 6} className="px-4 py-12 text-center text-slate-500">
                   Keine Bürger gefunden
                 </td>
               </tr>
@@ -136,9 +135,6 @@ export default async function CitizensPage({
                   </td>
                   <td className="px-4 py-3 text-slate-400 text-sm text-center">
                     {citizen._count.vehicles}
-                  </td>
-                  <td className="px-4 py-3 text-slate-400 text-sm text-center">
-                    {citizen._count.weapons}
                   </td>
                   {isAdmin && (
                     <td className="px-4 py-3 text-center">
