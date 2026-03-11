@@ -5,10 +5,20 @@ import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
+// Milliseconds to wait after signIn() for the session cookie to propagate in CEF
+const COOKIE_PROPAGATION_DELAY_MS = 300;
+// Milliseconds to wait between login retry attempts
+const RETRY_DELAY_MS = 800;
+
 function FivemAuthContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+
+  const addDebug = (msg: string) => {
+    setDebugInfo(prev => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
+  };
 
   useEffect(() => {
     const username = searchParams.get('username');
@@ -20,28 +30,62 @@ function FivemAuthContent() {
       return;
     }
 
-    async function doLogin() {
+    async function verifySession(): Promise<boolean> {
       try {
-        // Credentials-Login mit Spielername + Bürger-ID.
-        // Dieser Ansatz umgeht Cookie/JWT-Probleme im FiveM CEF-Browser,
-        // da NextAuth den Session-Cookie synchron im selben Request-Zyklus setzt.
-        const result = await signIn('fivem-credentials', {
-          username,
-          password: citizenId,
-          redirect: false,
-        });
+        const res = await fetch('/api/auth/session', { credentials: 'include' });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return !!(data?.user?.id);
+      } catch {
+        return false;
+      }
+    }
 
-        if (result?.error || !result?.ok) {
-          setStatus('error');
-          setErrorMsg('Anmeldung fehlgeschlagen. Spielername oder Bürger-ID ungültig.');
-          return;
+    async function doLogin() {
+      addDebug(`Starte Login: username="${username}" citizenid="${citizenId}"`);
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        addDebug(`Versuch ${attempt}/3...`);
+        try {
+          const result = await signIn('fivem-credentials', {
+            username,
+            password: citizenId,
+            redirect: false,
+          });
+
+          addDebug(`signIn Result: ok=${result?.ok} error=${result?.error ?? 'none'}`);
+
+          if (result?.ok && !result?.error) {
+            // Kurz warten damit Cookie gesetzt werden kann
+            await new Promise(r => setTimeout(r, COOKIE_PROPAGATION_DELAY_MS));
+
+            const sessionOk = await verifySession();
+            addDebug(`Session-Check: ${sessionOk}`);
+
+            if (sessionOk) {
+              addDebug('Login erfolgreich, redirect zu /dashboard');
+              window.location.href = '/dashboard';
+              return;
+            } else {
+              addDebug('Session-Cookie nicht erkannt trotz signIn OK – warte und retry...');
+            }
+          }
+        } catch (e) {
+          addDebug(`Fehler bei Versuch ${attempt}: ${e}`);
         }
 
-        window.location.href = '/dashboard';
-      } catch {
-        setStatus('error');
-        setErrorMsg('Verbindungsfehler. Bitte erneut versuchen.');
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        }
       }
+
+      addDebug('Alle Versuche fehlgeschlagen');
+      setStatus('error');
+      setErrorMsg(
+        'Automatische Anmeldung fehlgeschlagen. ' +
+        'Öffne das CAD manuell im Browser unter: ' +
+        (typeof window !== 'undefined' ? window.location.origin : '') + '/login'
+      );
     }
 
     doLogin();
@@ -61,13 +105,18 @@ function FivemAuthContent() {
             <p className="text-red-400 text-sm mb-6">{errorMsg}</p>
             <button
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors mb-3"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
               Erneut versuchen
             </button>
+            {debugInfo.length > 0 && (
+              <details className="mt-4 text-left">
+                <summary className="text-slate-500 text-xs cursor-pointer hover:text-slate-400">Debug-Info</summary>
+                <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono text-slate-400 space-y-1 max-h-40 overflow-y-auto">
+                  {debugInfo.map((line, i) => <div key={i}>{line}</div>)}
+                </div>
+              </details>
+            )}
           </div>
         </div>
       </div>
@@ -76,15 +125,23 @@ function FivemAuthContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950">
-      <div className="w-full max-w-md">
-        <div className="bg-slate-900 border border-slate-700 rounded-xl p-8 shadow-2xl text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4 animate-pulse">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      <div className="w-full max-w-md text-center">
+        <div className="bg-slate-900 border border-slate-700 rounded-xl p-8 shadow-2xl">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+            <svg className="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </div>
           <h1 className="text-xl font-bold text-white mb-2">FiveM CAD System</h1>
           <p className="text-slate-400 text-sm">Automatische Anmeldung läuft…</p>
+          {debugInfo.length > 0 && (
+            <details className="mt-4 text-left">
+              <summary className="text-slate-500 text-xs cursor-pointer hover:text-slate-400">Debug-Info</summary>
+              <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono text-slate-400 space-y-1 max-h-32 overflow-y-auto">
+                {debugInfo.map((line, i) => <div key={i}>{line}</div>)}
+              </div>
+            </details>
+          )}
         </div>
       </div>
     </div>
