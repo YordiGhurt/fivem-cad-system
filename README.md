@@ -198,15 +198,36 @@ Der FiveM-Ingame-Browser (CEF/Chromium) hat bekannte Probleme mit dem Setzen von
 5. Der Auth-Provider prüft, ob der Benutzer existiert, aktiv ist **und** `user.citizenId === citizenId`
 6. Bei Erfolg: Direkter Redirect zum Dashboard – kein Polling nötig
 
+### Auto-Provisioning (Automatische Benutzeranlage)
+
+Spieler werden beim **ersten Ingame-Login automatisch** im CAD angelegt:
+
+- **Benutzername** wird auf den **FiveM-Spielernamen** (`GetPlayerName()`) gesetzt
+- **Bürger-ID** wird als `citizenId` gespeichert
+- Neue Benutzer erhalten automatisch die Rolle **OFFICER**
+- Keine manuelle Anlage im Admin-Panel erforderlich
+
+**Migration bestehender Accounts:** Falls ein Benutzer noch die Bürger-ID als Username eingetragen hat (ältere Anlage), wird der Username beim nächsten Login automatisch auf den korrekten Spielernamen aktualisiert.
+
 ### Benutzer einrichten
 
-Damit der Ingame-Login funktioniert, muss im CAD-Admin-Panel für jeden Spieler ein Benutzer angelegt werden:
+Dank Auto-Provisioning werden Benutzer beim ersten Ingame-Login automatisch angelegt – eine manuelle Anlage ist nicht mehr erforderlich.
+
+Für manuell angelegte Benutzer (z. B. Admin-Accounts):
 
 - **Benutzername** = FiveM-Spielername (exakt so wie `GetPlayerName()` ihn zurückgibt, z. B. `Max_Mustermann`)
   > ⚠️ **Groß-/Kleinschreibung beachten!** Der Benutzername muss exakt übereinstimmen.
   > Um den genauen Spielernamen zu prüfen, kannst du in der FiveM-Serverkonsole `status` eingeben
   > oder im Server-Log nach `[CAD Bridge] Spieler synchronisiert:` suchen.
 - **Bürger-ID** = QBCore citizenid des Spielers (z. B. `GWF43187`)
+
+### Benutzerverwaltung im Admin-Panel
+
+Unter **Admin → Benutzerverwaltung** kannst du alle Benutzer einsehen und bearbeiten:
+
+- **Edit-Button** (Stift-Symbol) öffnet das Bearbeitungs-Modal für den Benutzer
+- Bearbeitbare Felder: **Benutzername**, **E-Mail**, **Rolle**, **Organisation**, **Status** (aktiv/inaktiv)
+- Über den Edit-Button können auch Benutzer korrigiert werden, bei denen noch die Bürger-ID als Username eingetragen ist
 
 Der Bürger-ID-Wert wird im Feld „Bürger-ID" des Benutzerprofils gespeichert.
 
@@ -238,6 +259,8 @@ Falls der Ingame-Login nicht funktioniert:
 - Prüfe, ob der CAD-Benutzer existiert und aktiv ist (`active = true`)
 - Prüfe, ob der Benutzername **exakt** mit `GetPlayerName()` übereinstimmt (Groß-/Kleinschreibung beachten)
 - Prüfe, ob die Bürger-ID im CAD-Profil mit der QBCore citizenid übereinstimmt
+- Beim ersten Login wird der Benutzer automatisch angelegt – falls dies nicht passiert, prüfe die Server-Logs
+- Falls ein alter Benutzer noch die Bürger-ID als Username hat: Entweder einmal einloggen (automatische Korrektur) oder im Admin-Panel manuell über den Edit-Button korrigieren
 - Prüfe, ob `NEXTAUTH_URL` exakt mit der URL übereinstimmt, über die das CAD aufgerufen wird
 - In FiveM-Konsole (`F8`): `nui_devtools` eingeben, um Chrome DevTools für den Ingame-Browser zu öffnen
 

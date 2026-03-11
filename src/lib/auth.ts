@@ -1,6 +1,8 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
+import { Role } from '@prisma/client';
 import { prisma } from './prisma';
 
 // Cookie-Konfiguration für FiveM CEF-Browser-Kompatibilität.
@@ -44,6 +46,7 @@ export const authOptions: NextAuthOptions = {
     // FiveM Ingame-Login: Spielername als Benutzername, Bürger-ID als Passwort.
     // Dies umgeht Cookie/JWT-Probleme im CEF-Browser von FiveM, da der Login
     // synchron per standard NextAuth-Credentials-Flow erfolgt – kein Token-Polling nötig.
+    // Beim ersten Login wird der Benutzer automatisch angelegt (Auto-Provisioning).
     CredentialsProvider({
       id: 'fivem-credentials',
       name: 'FiveM Credentials',
@@ -54,12 +57,47 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
+        // Erst nach Spielername (korrekter Username) suchen
+        let user = await prisma.user.findUnique({
           where: { username: credentials.username },
           include: { organization: true },
         });
 
-        if (!user || !user.active) return null;
+        // Fallback: nach Bürger-ID suchen (Migration bestehender Accounts, bei denen
+        // die Bürger-ID fälschlicherweise als Username gespeichert wurde)
+        if (!user) {
+          const byId = await prisma.user.findFirst({
+            where: { citizenId: credentials.password },
+            include: { organization: true },
+          });
+          if (byId) {
+            // Username auf Spielernamen korrigieren
+            user = await prisma.user.update({
+              where: { id: byId.id },
+              data: { username: credentials.username },
+              include: { organization: true },
+            });
+          }
+        }
+
+        // Auto-Provisioning: Benutzer beim ersten FiveM-Login automatisch anlegen.
+        // Rolle ist immer OFFICER, nie ADMIN.
+        if (!user) {
+          const tempPassword = await bcrypt.hash(randomUUID(), 10);
+          user = await prisma.user.create({
+            data: {
+              username: credentials.username,
+              email: `${credentials.password}@fivem.local`,
+              password: tempPassword,
+              citizenId: credentials.password,
+              role: Role.OFFICER,
+              active: true,
+            },
+            include: { organization: true },
+          });
+        }
+
+        if (!user.active) return null;
 
         // Bürger-ID als Authentifizierungsmerkmal – kein Passwort-Hash nötig
         if (user.citizenId !== credentials.password) return null;
