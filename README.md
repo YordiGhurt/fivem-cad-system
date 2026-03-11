@@ -181,20 +181,47 @@ TriggerServerEvent('cad:server:flagVehicle', 'ABCD123', true, 'Gestohlen')
 
 ---
 
-## FiveM Ingame-Login (Cookie-Konfiguration)
+## FiveM Ingame-Login (Credentials-basiert, empfohlen)
 
-### Lokal / Entwicklung
+### Warum Credentials-Login statt Token?
 
-Damit der automatische Login im FiveM-Ingame-Browser (CEF/Chromium) funktioniert, müssen die Session-Cookies mit kompatiblen Attributen gesetzt werden. Der CEF-Browser speichert Cookies auf `http://`-URLs **nicht**, wenn das `Secure`-Flag gesetzt ist.
+Der FiveM-Ingame-Browser (CEF/Chromium) hat bekannte Probleme mit dem Setzen von Cookies nach asynchronen NextAuth-Flows (Token-basierter Login). Die Session wird manchmal nicht korrekt persistiert, was zu Redirect-Schleifen zur Login-Seite führt.
 
-Das CAD-System erkennt dies automatisch anhand der `NEXTAUTH_URL`:
+**Die Lösung:** Der Login erfolgt nun direkt mit **Spielername + Bürger-ID** als NextAuth-Credentials. Dies umgeht alle Cookie/JWT-Race-Conditions, da NextAuth den Session-Cookie synchron im selben Request-Zyklus setzt.
+
+### Wie funktioniert der Credentials-Login?
+
+1. Der Spieler öffnet das CAD ingame mit `/cad` oder `F6`
+2. Der FiveM-Server liest Spielername (`GetPlayerName`) und Bürger-ID aus QBCore aus
+3. Die CAD-URL wird geöffnet: `/auth/fivem?username=<Spielername>&citizenid=<BürgerID>`
+4. Die CAD-Seite ruft `signIn('fivem-credentials', { username, password: citizenId })` auf
+5. Der Auth-Provider prüft, ob der Benutzer existiert, aktiv ist **und** `user.citizenId === citizenId`
+6. Bei Erfolg: Direkter Redirect zum Dashboard – kein Polling nötig
+
+### Benutzer einrichten
+
+Damit der Ingame-Login funktioniert, muss im CAD-Admin-Panel für jeden Spieler ein Benutzer angelegt werden:
+
+- **Benutzername** = FiveM-Spielername (exakt so wie `GetPlayerName()` ihn zurückgibt, z. B. `Max_Mustermann`)
+  > ⚠️ **Groß-/Kleinschreibung beachten!** Der Benutzername muss exakt übereinstimmen.
+  > Um den genauen Spielernamen zu prüfen, kannst du in der FiveM-Serverkonsole `status` eingeben
+  > oder im Server-Log nach `[CAD Bridge] Spieler synchronisiert:` suchen.
+- **Bürger-ID** = QBCore citizenid des Spielers (z. B. `GWF43187`)
+
+Der Bürger-ID-Wert wird im Feld „Bürger-ID" des Benutzerprofils gespeichert.
+
+> 💡 **Hinweis zur Sicherheit:** Die Bürger-ID wird als Login-Merkmal verwendet und im Klartext verglichen.
+> Sie ist kein klassisches Passwort – der Zugang ist auf Spieler beschränkt, die ihre Bürger-ID kennen.
+> Für maximale Sicherheit sollte der CAD-Server nicht öffentlich zugänglich sein.
+
+### Cookie-Konfiguration
+
+Damit der Session-Cookie im CEF-Browser korrekt gesetzt wird, muss `NEXTAUTH_URL` in `.env` korrekt gesetzt sein:
 
 | `NEXTAUTH_URL` | `secure` | Verwendung |
 |---|---|---|
 | `http://localhost:3000` | `false` | Lokale Entwicklung / FiveM lokal |
 | `https://dein-cad-server.de` | `true` | Produktion |
-
-Stelle sicher, dass in `.env` die korrekte URL gesetzt ist:
 
 ```env
 # Lokal:
@@ -204,31 +231,17 @@ NEXTAUTH_URL="http://localhost:3000"
 # NEXTAUTH_URL="https://dein-cad-server.de"
 ```
 
-### Produktion
-
-> ⚠️ **Wichtig:** In der Produktion muss `NEXTAUTH_URL` auf eine `https://`-URL gesetzt sein.
-> Nur so wird der Cookie mit `secure: true` gesetzt, was für die Sicherheit zwingend erforderlich ist.
-> Außerdem muss der FiveM-Server die CAD-URL über HTTPS erreichen können.
-
-Schritte für Produktion:
-
-1. `NEXTAUTH_URL="https://dein-cad-server.de"` in `.env` setzen
-2. `NEXTAUTH_SECRET` auf einen langen, zufälligen Wert setzen
-3. SSL-Zertifikat sicherstellen (z. B. via Let's Encrypt / Caddy / nginx)
-
 ### Fehlersuche
 
 Falls der Ingame-Login nicht funktioniert:
 
+- Prüfe, ob der CAD-Benutzer existiert und aktiv ist (`active = true`)
+- Prüfe, ob der Benutzername **exakt** mit `GetPlayerName()` übereinstimmt (Groß-/Kleinschreibung beachten)
+- Prüfe, ob die Bürger-ID im CAD-Profil mit der QBCore citizenid übereinstimmt
 - Prüfe, ob `NEXTAUTH_URL` exakt mit der URL übereinstimmt, über die das CAD aufgerufen wird
-- Prüfe im Server-Log, ob `POST /api/auth/callback/fivem-token` mit `200` antwortet
-- Falls danach `GET /api/auth/session` immer `{}` (leer) zurückgibt, liegt ein Cookie-Problem vor → `NEXTAUTH_URL` prüfen
-- In FiveM-Konsole (`F8`): `nui_devtools` eingeben, um Chrome DevTools für den Ingame-Browser zu öffnen und Cookies zu inspizieren
+- In FiveM-Konsole (`F8`): `nui_devtools` eingeben, um Chrome DevTools für den Ingame-Browser zu öffnen
 
 ---
-
-
-
 Alle API-Endpunkte erfordern eine gültige NextAuth-Session (außer `/api/sync/player`).
 
 ### Authentifizierung

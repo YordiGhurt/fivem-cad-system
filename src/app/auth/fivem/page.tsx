@@ -11,10 +11,10 @@ function FivemAuthContent() {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const username = searchParams.get('username');
     const citizenId = searchParams.get('citizenid');
 
-    if (!token || !citizenId) {
+    if (!username || !citizenId) {
       setStatus('error');
       setErrorMsg('Ungültige Login-Parameter. Bitte /cad ingame erneut verwenden.');
       return;
@@ -22,59 +22,18 @@ function FivemAuthContent() {
 
     async function doLogin() {
       try {
-        // Step 1: Verify the token and get user info
-        const res = await fetch('/api/auth/fivem/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, citizenId }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          setStatus('error');
-          setErrorMsg(err.error ?? 'Token ungültig oder abgelaufen.');
-          return;
-        }
-
-        const { user } = await res.json();
-
-        // Step 2: Sign in with the fivem-token provider using the user ID
-        const result = await signIn('fivem-token', {
-          userId: user.id,
+        // Credentials-Login mit Spielername + Bürger-ID.
+        // Dieser Ansatz umgeht Cookie/JWT-Probleme im FiveM CEF-Browser,
+        // da NextAuth den Session-Cookie synchron im selben Request-Zyklus setzt.
+        const result = await signIn('fivem-credentials', {
+          username,
+          password: citizenId,
           redirect: false,
         });
 
-        if (result?.error) {
+        if (result?.error || !result?.ok) {
           setStatus('error');
-          setErrorMsg('Anmeldung fehlgeschlagen. Bitte erneut versuchen.');
-          return;
-        }
-
-        // Polling statt setTimeout: Der NextAuth-Session-Cookie wird asynchron gesetzt.
-        // Ein fixer Delay führt zu Race Conditions auf langsameren Systemen. Deshalb
-        // wird /api/auth/session wiederholt abgefragt, bis eine gültige Session vorliegt.
-        // credentials: 'include' stellt sicher, dass der Session-Cookie auch im
-        // FiveM CEF-Browser mitgesendet wird.
-        // 15 Versuche × 500 ms = 7,5 s – ausreichend für langsame CEF-Umgebungen
-        // und deutlich mehr als die typische Cookie-Propagierungszeit.
-        const maxAttempts = 15;
-        const delayMs = 500;
-        let sessionFound = false;
-
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-          const sessionResponse = await fetch('/api/auth/session', { credentials: 'include' });
-          if (!sessionResponse.ok) continue;
-          const sessionData = await sessionResponse.json();
-          if (sessionData?.user?.id) {
-            sessionFound = true;
-            break;
-          }
-        }
-
-        if (!sessionFound) {
-          setStatus('error');
-          setErrorMsg('Session konnte nicht gesetzt werden. Bitte erneut versuchen.');
+          setErrorMsg('Anmeldung fehlgeschlagen. Spielername oder Bürger-ID ungültig.');
           return;
         }
 

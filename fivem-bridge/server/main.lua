@@ -244,8 +244,9 @@ local function syncPlayerToCAD(source)
     end)
 end
 
--- Token für CAD-Login anfordern und an Client senden
-RegisterNetEvent('cad:server:requestToken', function()
+-- Login-Daten (Spielername + Bürger-ID) für CAD-Credentials-Login anfordern
+-- Kein API-Aufruf nötig – die Daten liegen lokal im QBCore vor.
+RegisterNetEvent('cad:server:requestLogin', function()
     local source = source
     local Player = QBCore.Functions.GetPlayer(source)
     if not Player then return end
@@ -275,24 +276,9 @@ RegisterNetEvent('cad:server:requestToken', function()
         return
     end
 
-    -- Token beim CAD anfordern
-    cadApiPost('/api/auth/fivem/token', {
-        citizenId = citizenid,
-        jobName = job.name,
-        jobGradeLevel = job.grade.level,
-        jobGradeName = job.grade.name,
-    }, function(status, response)
-        if status == 200 then
-            local ok, data = pcall(json.decode, response)
-            if ok and data and data.token then
-                TriggerClientEvent('cad:client:openCAD', source, data.token, citizenid, nil)
-            else
-                TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'CAD-Login fehlgeschlagen – ungültige Antwort.')
-            end
-        else
-            TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'CAD-Login fehlgeschlagen – Server nicht erreichbar.')
-        end
-    end)
+    -- Spielername direkt verwenden (entspricht dem CAD-Benutzernamen)
+    local username = GetPlayerName(source)
+    TriggerClientEvent('cad:client:openCAD', source, username, citizenid, nil)
 end)
 
 -- Event: Spieler betritt Server
