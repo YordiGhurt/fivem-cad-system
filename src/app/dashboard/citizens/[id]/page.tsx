@@ -125,44 +125,52 @@ export default async function CitizenDetailPage({
           {/* Lizenzen */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <h2 className="text-white font-semibold mb-4">Lizenzen</h2>
+            {(() => {
+              const licenceMap: Record<string, { label: string; icon: string }> = {
+                driver: { label: 'Führerschein', icon: '🚗' },
+                weapon: { label: 'Waffenschein', icon: '🔫' },
+                pilot: { label: 'Pilotenlizenz', icon: '✈️' },
+                boat: { label: 'Bootsführerschein', icon: '🚤' },
+                business: { label: 'Gewerbeschein', icon: '💼' },
+              };
 
-            {/* Fahrzeuglizenzen */}
-            <h3 className="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">
-              Fahrzeuglizenzen ({citizen.vehicles.length})
-            </h3>
-            {citizen.vehicles.length === 0 ? (
-              <p className="text-slate-500 text-sm mb-4">Keine registrierten Fahrzeuge</p>
-            ) : (
-              <ul className="space-y-1 mb-4">
-                {citizen.vehicles.map((vehicle) => (
-                  <li key={vehicle.id} className="flex items-center gap-2 text-sm">
-                    <span className="text-blue-400 font-mono">{vehicle.plate}</span>
-                    <span className="text-slate-400">·</span>
-                    <span className="text-slate-300">{vehicle.model}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+              const licences =
+                citizen.licences && typeof citizen.licences === 'object'
+                  ? (citizen.licences as Record<string, boolean>)
+                  : null;
 
-            {/* Waffenlizenzen */}
-            <h3 className="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">
-              Waffenlizenzen ({citizen.weapons.filter((w) => w.licensed).length})
-            </h3>
-            {citizen.weapons.filter((w) => w.licensed).length === 0 ? (
-              <p className="text-slate-500 text-sm">Keine lizenzierten Waffen</p>
-            ) : (
-              <ul className="space-y-1">
-                {citizen.weapons
-                  .filter((w) => w.licensed)
-                  .map((weapon) => (
-                    <li key={weapon.id} className="flex items-center gap-2 text-sm">
-                      <span className="text-slate-300 font-mono">{weapon.serialNumber}</span>
-                      <span className="text-slate-400">·</span>
-                      <span className="text-slate-300">{weapon.model}</span>
-                    </li>
-                  ))}
-              </ul>
-            )}
+              if (!licences) {
+                return (
+                  <p className="text-slate-500 text-sm">Keine Lizenzdaten verfügbar</p>
+                );
+              }
+
+              const entries = Object.entries(licenceMap);
+
+              return (
+                <ul className="space-y-2">
+                  {entries.map(([key, { label, icon }]) => {
+                    const active = licences[key] === true;
+                    return (
+                      <li key={key} className="flex items-center justify-between text-sm">
+                        <span className="text-slate-300">
+                          {icon} {label}
+                        </span>
+                        {active ? (
+                          <span className="text-xs bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">
+                            ✅ Aktiv
+                          </span>
+                        ) : (
+                          <span className="text-xs bg-slate-700 text-slate-500 border border-slate-600 px-2 py-0.5 rounded-full">
+                            ❌ Nicht vorhanden
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              );
+            })()}
           </div>
         </div>
 
