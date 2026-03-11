@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { RichTextEditor } from '@/components/RichTextEditor';
 
@@ -13,6 +14,7 @@ interface Organization {
 
 export default function NewOrgNewsPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [form, setForm] = useState({
     title: '',
     content: '',
@@ -26,9 +28,14 @@ export default function NewOrgNewsPage() {
   useEffect(() => {
     fetch('/api/organizations')
       .then((r) => r.json())
-      .then((d) => setOrgs(d.data ?? []))
+      .then((d) => {
+        setOrgs(d.data ?? []);
+        if (session?.user?.organizationId) {
+          setForm((prev) => ({ ...prev, organizationId: session.user.organizationId! }));
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, [session?.user?.organizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

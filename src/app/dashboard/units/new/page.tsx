@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 interface Organization {
@@ -17,6 +18,7 @@ interface User {
 
 export default function NewUnitPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [form, setForm] = useState({
     callsign: '',
     userId: '',
@@ -31,9 +33,22 @@ export default function NewUnitPage() {
   useEffect(() => {
     fetch('/api/organizations')
       .then((r) => r.json())
-      .then((d) => setOrgs(d.data ?? []))
+      .then((d) => {
+        setOrgs(d.data ?? []);
+        const orgId = session?.user?.organizationId;
+        if (orgId) {
+          setForm((prev) => ({ ...prev, organizationId: orgId, userId: '' }));
+          setUsers([]);
+          setLoadingUsers(true);
+          fetch(`/api/users?organizationId=${orgId}`)
+            .then((r) => r.json())
+            .then((d2) => setUsers(d2.data ?? []))
+            .catch(() => setUsers([]))
+            .finally(() => setLoadingUsers(false));
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, [session?.user?.organizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

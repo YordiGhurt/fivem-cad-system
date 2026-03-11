@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 interface Organization {
@@ -51,6 +52,7 @@ function getModulesForOrg(orgType: string) {
 
 export default function NewTrainingRecordPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [form, setForm] = useState({
     traineeName: '',
     traineeId: '',
@@ -71,13 +73,19 @@ export default function NewTrainingRecordPage() {
   useEffect(() => {
     fetch('/api/organizations')
       .then((r) => r.json())
-      .then((d) => setOrgs(d.data ?? []))
+      .then((d) => {
+        setOrgs(d.data ?? []);
+        if (session?.user?.organizationId) {
+          setForm((prev) => ({ ...prev, organizationId: session.user.organizationId! }));
+          setModules({});
+        }
+      })
       .catch(() => {});
     fetch('/api/users?pageSize=200')
       .then((r) => r.json())
       .then((d) => setUsers(d.data ?? []))
       .catch(() => {});
-  }, []);
+  }, [session?.user?.organizationId]);
 
   const selectedOrg = orgs.find((o) => o.id === form.organizationId);
   const availableModules = selectedOrg ? getModulesForOrg(selectedOrg.type) : [];

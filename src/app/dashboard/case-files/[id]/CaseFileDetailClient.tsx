@@ -18,6 +18,12 @@ const statusColors: Record<string, string> = {
   ARCHIVED: 'bg-slate-600/20 text-slate-500 border border-slate-600/30',
 };
 
+interface Organization {
+  id: string;
+  name: string;
+  callsign: string;
+}
+
 interface CaseFileDetailClientProps {
   caseFile: {
     id: string;
@@ -32,16 +38,30 @@ interface CaseFileDetailClientProps {
     charges: Array<{ id: string; citizenName: string; status: string; issuedBy: { username: string } }>;
     verdicts: Array<{ id: string; caseNumber: string; type: string; judge: { username: string } }>;
     pdfUrl: string | null;
+    transferredToOrgId: string | null;
+    transferredAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
   };
   isAdmin?: boolean;
+  organizations: Organization[];
 }
 
-export function CaseFileDetailClient({ caseFile, isAdmin }: CaseFileDetailClientProps) {
+export function CaseFileDetailClient({ caseFile, isAdmin, organizations }: CaseFileDetailClientProps) {
   const [pdfUrl, setPdfUrl] = useState(caseFile.pdfUrl);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [transferOrgId, setTransferOrgId] = useState('');
+  const [transferring, setTransferring] = useState(false);
+  const [transferred, setTransferred] = useState<{ orgId: string; at: Date } | null>(
+    caseFile.transferredToOrgId
+      ? { orgId: caseFile.transferredToOrgId, at: caseFile.transferredAt ?? new Date() }
+      : null,
+  );
+
+  const transferredOrg = transferred
+    ? organizations.find((o) => o.id === transferred.orgId)
+    : null;
 
   async function handleGeneratePDF() {
     setGenerating(true);
@@ -61,6 +81,29 @@ export function CaseFileDetailClient({ caseFile, isAdmin }: CaseFileDetailClient
     }
   }
 
+  async function handleTransfer() {
+    if (!transferOrgId) return;
+    setTransferring(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/case-files/${caseFile.id}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetOrganizationId: transferOrgId }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setTransferred({ orgId: transferOrgId, at: new Date() });
+      } else {
+        setError(json.error ?? 'Weiterleitung fehlgeschlagen');
+      }
+    } catch {
+      setError('Netzwerkfehler');
+    } finally {
+      setTransferring(false);
+    }
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -68,6 +111,17 @@ export function CaseFileDetailClient({ caseFile, isAdmin }: CaseFileDetailClient
           ← Zurück zu Parteiakten
         </Link>
       </div>
+
+      {transferred && (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-3 text-yellow-400 text-sm mb-6 flex items-center gap-2">
+          <span>📤</span>
+          <span>
+            Diese Akte wurde am {format(new Date(transferred.at), 'dd.MM.yyyy HH:mm')} an{' '}
+            <strong>{transferredOrg ? `${transferredOrg.callsign} – ${transferredOrg.name}` : transferred.orgId}</strong> weitergeleitet.
+            Sie ist nun für die empfangende Organisation bestimmt.
+          </span>
+        </div>
+      )}
 
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -140,6 +194,38 @@ export function CaseFileDetailClient({ caseFile, isAdmin }: CaseFileDetailClient
               </div>
             </div>
           )}
+
+          {/* Akte weiterleiten */}
+          {!transferred && (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+              <h2 className="text-white font-semibold mb-3">Akte weiterleiten</h2>
+              <p className="text-slate-400 text-sm mb-4">
+                Leite diese Akte an eine andere Organisation weiter (z.B. DOJ/Staatsanwaltschaft).
+                Nach der Weiterleitung ist die Akte für die empfangende Organisation zur Bearbeitung freigegeben.
+              </p>
+              <div className="flex gap-3">
+                <select
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                  value={transferOrgId}
+                  onChange={(e) => setTransferOrgId(e.target.value)}
+                >
+                  <option value="">— Organisation wählen —</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.callsign} – {org.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleTransfer}
+                  disabled={!transferOrgId || transferring}
+                  className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                >
+                  {transferring ? 'Weiterleiten…' : '📤 Akte weiterleiten'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -158,6 +244,17 @@ export function CaseFileDetailClient({ caseFile, isAdmin }: CaseFileDetailClient
                 <div>
                   <dt className="text-slate-500 text-xs">Zugewiesen an</dt>
                   <dd className="text-white text-sm">{caseFile.assignedTo.username}</dd>
+                </div>
+              )}
+              {transferred && (
+                <div>
+                  <dt className="text-slate-500 text-xs">Weitergeleitet an</dt>
+                  <dd className="text-yellow-400 text-sm">
+                    {transferredOrg ? `${transferredOrg.callsign} – ${transferredOrg.name}` : transferred.orgId}
+                  </dd>
+                  <dd className="text-slate-500 text-xs mt-0.5">
+                    {format(new Date(transferred.at), 'dd.MM.yyyy HH:mm')}
+                  </dd>
                 </div>
               )}
               <div>
