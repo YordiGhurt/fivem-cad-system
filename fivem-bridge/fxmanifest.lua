@@ -6,6 +6,12 @@ description 'CAD System Bridge for QBCore'
 version '1.0.0'
 author 'CAD System'
 
+ui_page 'html/index.html'
+
+files {
+    'html/index.html'
+}
+
 shared_scripts {
     'config.lua'
 }

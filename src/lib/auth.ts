@@ -3,6 +3,8 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 
+const isHttps = process.env.NEXTAUTH_URL?.startsWith('https://') ?? false;
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -92,9 +94,9 @@ export const authOptions: NextAuthOptions = {
       name: 'next-auth.session-token',
       options: {
         httpOnly: true,
-        sameSite: 'none' as const, // wichtig für iframe/NUI
+        sameSite: isHttps ? ('none' as const) : ('lax' as const),
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
+        secure: isHttps,
       },
     },
   },
