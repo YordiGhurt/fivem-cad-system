@@ -5,20 +5,10 @@ import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
-// Milliseconds to wait after signIn() for the session cookie to propagate in CEF
-const COOKIE_PROPAGATION_DELAY_MS = 300;
-// Milliseconds to wait between login retry attempts
-const RETRY_DELAY_MS = 800;
-
 function FivemAuthContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-
-  const addDebug = (msg: string) => {
-    setDebugInfo(prev => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
-  };
 
   useEffect(() => {
     const username = searchParams.get('username');
@@ -30,62 +20,25 @@ function FivemAuthContent() {
       return;
     }
 
-    async function verifySession(): Promise<boolean> {
-      try {
-        const res = await fetch('/api/auth/session', { credentials: 'include' });
-        if (!res.ok) return false;
-        const data = await res.json();
-        return !!(data?.user?.id);
-      } catch {
-        return false;
-      }
-    }
-
     async function doLogin() {
-      addDebug(`Starte Login: username="${username}" citizenid="${citizenId}"`);
+      try {
+        const result = await signIn('fivem-credentials', {
+          username,
+          password: citizenId,
+          redirect: false,
+        });
 
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        addDebug(`Versuch ${attempt}/3...`);
-        try {
-          const result = await signIn('fivem-credentials', {
-            username,
-            password: citizenId,
-            redirect: false,
-          });
-
-          addDebug(`signIn Result: ok=${result?.ok} error=${result?.error ?? 'none'}`);
-
-          if (result?.ok && !result?.error) {
-            // Kurz warten damit Cookie gesetzt werden kann
-            await new Promise(r => setTimeout(r, COOKIE_PROPAGATION_DELAY_MS));
-
-            const sessionOk = await verifySession();
-            addDebug(`Session-Check: ${sessionOk}`);
-
-            if (sessionOk) {
-              addDebug('Login erfolgreich, redirect zu /dashboard');
-              window.location.href = '/dashboard';
-              return;
-            } else {
-              addDebug('Session-Cookie nicht erkannt trotz signIn OK – warte und retry...');
-            }
-          }
-        } catch (e) {
-          addDebug(`Fehler bei Versuch ${attempt}: ${e}`);
+        if (result?.error || !result?.ok) {
+          setStatus('error');
+          setErrorMsg('Anmeldung fehlgeschlagen. Spielername oder Bürger-ID ungültig.');
+          return;
         }
 
-        if (attempt < 3) {
-          await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
-        }
+        window.location.href = '/dashboard';
+      } catch {
+        setStatus('error');
+        setErrorMsg('Verbindungsfehler. Bitte erneut versuchen.');
       }
-
-      addDebug('Alle Versuche fehlgeschlagen');
-      setStatus('error');
-      setErrorMsg(
-        'Automatische Anmeldung fehlgeschlagen. ' +
-        'Öffne das CAD manuell im Browser unter: ' +
-        (typeof window !== 'undefined' ? window.location.origin : '') + '/login'
-      );
     }
 
     doLogin();
@@ -105,18 +58,10 @@ function FivemAuthContent() {
             <p className="text-red-400 text-sm mb-6">{errorMsg}</p>
             <button
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors mb-3"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               Erneut versuchen
             </button>
-            {debugInfo.length > 0 && (
-              <details className="mt-4 text-left">
-                <summary className="text-slate-500 text-xs cursor-pointer hover:text-slate-400">Debug-Info</summary>
-                <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono text-slate-400 space-y-1 max-h-40 overflow-y-auto">
-                  {debugInfo.map((line, i) => <div key={i}>{line}</div>)}
-                </div>
-              </details>
-            )}
           </div>
         </div>
       </div>
@@ -134,14 +79,6 @@ function FivemAuthContent() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">FiveM CAD System</h1>
           <p className="text-slate-400 text-sm">Automatische Anmeldung läuft…</p>
-          {debugInfo.length > 0 && (
-            <details className="mt-4 text-left">
-              <summary className="text-slate-500 text-xs cursor-pointer hover:text-slate-400">Debug-Info</summary>
-              <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono text-slate-400 space-y-1 max-h-32 overflow-y-auto">
-                {debugInfo.map((line, i) => <div key={i}>{line}</div>)}
-              </div>
-            </details>
-          )}
         </div>
       </div>
     </div>
