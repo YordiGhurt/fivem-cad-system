@@ -16,6 +16,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
       - run: npm run lint
       - run: npx tsc --noEmit
 
@@ -29,6 +31,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
       - run: npm test -- --run
 
   build:
@@ -41,6 +45,10 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          NEXTAUTH_SECRET: test-secret-for-build
+          NEXTAUTH_URL: http://localhost:3000
       - run: npm run build
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test

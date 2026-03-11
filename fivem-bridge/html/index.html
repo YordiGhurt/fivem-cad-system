@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAD System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: transparent; overflow: hidden; }
+
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    #overlay.visible {
+      display: block;
+    }
+
+    #cad-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <iframe id="cad-frame" src="" allow="autoplay" allowfullscreen></iframe>
+  </div>
+
+  <script>
+    const overlay = document.getElementById('overlay');
+    const frame = document.getElementById('cad-frame');
+
+    window.addEventListener('message', function (event) {
+      const data = event.data;
+      if (!data || !data.action) return;
+
+      if (data.action === 'open') {
+        frame.src = data.url || '';
+        overlay.classList.add('visible');
+      } else if (data.action === 'close') {
+        overlay.classList.remove('visible');
+        frame.src = '';
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && overlay.classList.contains('visible')) {
+        fetch('https://fivem-cad-bridge/closeCAD', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        }).catch(function () {});
+      }
+    });
+  </script>
+</body>
+</html>
