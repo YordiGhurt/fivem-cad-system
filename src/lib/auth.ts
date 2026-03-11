@@ -154,6 +154,24 @@ export const authOptions: NextAuthOptions = {
         secure: isHttpsContext,
       },
     },
+    csrfToken: {
+      name: 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isHttpsContext,
+      },
+    },
+    callbackUrl: {
+      name: 'next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isHttpsContext,
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

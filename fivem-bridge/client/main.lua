@@ -5,11 +5,22 @@ local QBCore = exports['qb-core']:GetCoreObject()
 local cadOpen = false
 local cadUnitCallsign = nil
 
+-- URL-Encoding: Sonderzeichen und Leerzeichen in URLs korrekt enkodieren
+local function urlEncode(str)
+    if str == nil then return '' end
+    str = string.gsub(str, "([^%w%-%.%_%~ ])", function(c)
+        return string.format("%%%02X", string.byte(c))
+    end)
+    return string.gsub(str, " ", "%%20")
+end
+
 -- CAD-Interface öffnen (mit Credentials-basiertem Login: Spielername + Bürger-ID)
 local function openCADWithCredentials(username, citizenid)
     if cadOpen then return end
     cadOpen = true
-    local url = Config.CAD_URL .. '/auth/fivem?username=' .. username .. '&citizenid=' .. citizenid
+    local encodedUsername = urlEncode(username)
+    local encodedCitizenId = urlEncode(citizenid)
+    local url = Config.CAD_URL .. '/auth/fivem?username=' .. encodedUsername .. '&citizenid=' .. encodedCitizenId
     SendNUIMessage({
         action = 'open',
         url = url,
