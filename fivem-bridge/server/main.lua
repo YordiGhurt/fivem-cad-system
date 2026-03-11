@@ -32,44 +32,6 @@ local function cadApiGet(endpoint, callback)
     })
 end
 
--- Spieler-Daten synchronisieren
-local function syncPlayerToCAD(source)
-    local Player = QBCore.Functions.GetPlayer(source)
-    if not Player then return end
-
-    local citizenid = Player.PlayerData.citizenid
-    local charinfo = Player.PlayerData.charinfo
-
-    if not citizenid or not charinfo then return end
-
-    cadApiPost('/api/sync/player', {
-        citizenId = citizenid,
-        steamId = GetPlayerIdentifierByType(source, 'steam') or '',
-        firstName = charinfo.firstname or '',
-        lastName = charinfo.lastname or '',
-        dateOfBirth = charinfo.birthdate or '',
-        phone = charinfo.phone or '',
-    }, function(status, response)
-        if status == 200 then
-            print('[CAD Bridge] Spieler synchronisiert: ' .. citizenid)
-
-            -- Fahrzeuge aus QBCore laden und synchronisieren
-            local vehicles = Player.PlayerData.vehicles
-            if vehicles then
-                syncVehiclesToCAD(citizenid, vehicles)
-            end
-
-            -- Waffen aus QBCore laden und synchronisieren
-            local items = Player.PlayerData.items
-            if items then
-                syncWeaponsToCAD(citizenid, items)
-            end
-        else
-            print('[CAD Bridge] Sync-Fehler für ' .. citizenid .. ': ' .. tostring(status))
-        end
-    end)
-end
-
 -- Fahrzeuge synchronisieren
 -- In QBCore sind Fahrzeuge als Key-Value-Pairs gespeichert (Key = Kennzeichen)
 local function syncVehiclesToCAD(citizenid, vehicles)
@@ -128,6 +90,44 @@ local function syncWeaponsToCAD(citizenid, items)
             print('[CAD Bridge] ' .. #weaponList .. ' Waffen synchronisiert für: ' .. citizenid)
         else
             print('[CAD Bridge] Waffen-Sync-Fehler für ' .. citizenid .. ': ' .. tostring(status))
+        end
+    end)
+end
+
+-- Spieler-Daten synchronisieren
+local function syncPlayerToCAD(source)
+    local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then return end
+
+    local citizenid = Player.PlayerData.citizenid
+    local charinfo = Player.PlayerData.charinfo
+
+    if not citizenid or not charinfo then return end
+
+    cadApiPost('/api/sync/player', {
+        citizenId = citizenid,
+        steamId = GetPlayerIdentifierByType(source, 'steam') or '',
+        firstName = charinfo.firstname or '',
+        lastName = charinfo.lastname or '',
+        dateOfBirth = charinfo.birthdate or '',
+        phone = charinfo.phone or '',
+    }, function(status, response)
+        if status == 200 then
+            print('[CAD Bridge] Spieler synchronisiert: ' .. citizenid)
+
+            -- Fahrzeuge aus QBCore laden und synchronisieren
+            local vehicles = Player.PlayerData.vehicles
+            if vehicles then
+                syncVehiclesToCAD(citizenid, vehicles)
+            end
+
+            -- Waffen aus QBCore laden und synchronisieren
+            local items = Player.PlayerData.items
+            if items then
+                syncWeaponsToCAD(citizenid, items)
+            end
+        else
+            print('[CAD Bridge] Sync-Fehler für ' .. citizenid .. ': ' .. tostring(status))
         end
     end)
 end
