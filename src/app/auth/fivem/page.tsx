@@ -9,8 +9,6 @@ function FivemAuthContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
-  // Delay to ensure the browser has persisted the httpOnly session cookie
-  const COOKIE_PERSISTENCE_DELAY_MS = 500;
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -52,8 +50,30 @@ function FivemAuthContent() {
           return;
         }
 
-        // Kurz warten damit der Cookie sicher gespeichert ist, dann hard-navigate
-        await new Promise(resolve => setTimeout(resolve, COOKIE_PERSISTENCE_DELAY_MS));
+        // Polling statt setTimeout: Der NextAuth-Session-Cookie wird asynchron gesetzt.
+        // Ein fixer Delay führt zu Race Conditions auf langsameren Systemen. Deshalb
+        // wird /api/auth/session wiederholt abgefragt, bis eine gültige Session vorliegt.
+        const maxAttempts = 10;
+        const delayMs = 500;
+        let sessionFound = false;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          const sessionResponse = await fetch('/api/auth/session');
+          if (!sessionResponse.ok) continue;
+          const sessionData = await sessionResponse.json();
+          if (sessionData?.user?.id) {
+            sessionFound = true;
+            break;
+          }
+        }
+
+        if (!sessionFound) {
+          setStatus('error');
+          setErrorMsg('Session konnte nicht gesetzt werden. Bitte erneut versuchen.');
+          return;
+        }
+
         window.location.href = '/dashboard';
       } catch {
         setStatus('error');
