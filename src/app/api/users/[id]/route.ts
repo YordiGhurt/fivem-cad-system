@@ -7,6 +7,8 @@ import { createAdminLog } from '@/lib/adminLog';
 
 const patchSchema = z
   .object({
+    username: z.string().min(1).optional(),
+    email: z.string().email().optional(),
     role: z.enum(['ADMIN', 'SUPERVISOR', 'OFFICER', 'DISPATCHER', 'USER']).optional(),
     active: z.boolean().optional(),
     organizationId: z.string().nullable().optional(),

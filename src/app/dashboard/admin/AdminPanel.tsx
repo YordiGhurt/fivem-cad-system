@@ -1064,6 +1064,143 @@ function UserFormModal({
   );
 }
 
+// ─── Edit User Modal ──────────────────────────────────────────────────────────
+
+interface EditUserFormData {
+  username: string;
+  email: string;
+  role: Role;
+  organizationId: string | null;
+  active: boolean;
+}
+
+function EditUserModal({
+  user,
+  orgs,
+  onClose,
+  onSave,
+}: {
+  user: User;
+  orgs: Organization[];
+  onClose: () => void;
+  onSave: (data: EditUserFormData) => Promise<void>;
+}) {
+  const [form, setForm] = useState<EditUserFormData>({
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    organizationId: user.organizationId ?? null,
+    active: user.active,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-white font-semibold">Benutzer bearbeiten</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Benutzername (Spielername)</label>
+              <input
+                className={inputClass}
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelClass}>E-Mail</label>
+              <input
+                type="email"
+                className={inputClass}
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Rolle</label>
+              <select
+                className={inputClass}
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+              >
+                {(['ADMIN', 'SUPERVISOR', 'OFFICER', 'DISPATCHER', 'USER'] as Role[]).map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Organisation</label>
+              <select
+                className={inputClass}
+                value={form.organizationId ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, organizationId: e.target.value || null })
+                }
+              >
+                <option value="">— Keine —</option>
+                {orgs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.callsign}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Status</label>
+            <select
+              className={inputClass}
+              value={form.active ? 'active' : 'inactive'}
+              onChange={(e) => setForm({ ...form, active: e.target.value === 'active' })}
+            >
+              <option value="active">Aktiv</option>
+              <option value="inactive">Inaktiv</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-white hover:bg-slate-800 px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              {saving ? 'Speichern…' : 'Änderungen speichern'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main AdminPanel ──────────────────────────────────────────────────────────
 
 export default function AdminPanel({
@@ -1088,6 +1225,7 @@ export default function AdminPanel({
 
   // ── User modals state ───────────────────────────────────────────────────────
   const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [editUser, setEditUser] = useState<User | null>(null);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
   // ── Org modals state ────────────────────────────────────────────────────────
@@ -1213,6 +1351,33 @@ export default function AdminPanel({
     setDeleteUser(null);
     showToast('Benutzer gelöscht', 'success');
   }, [deleteUser, showToast]);
+
+  const handleEditUser = useCallback(
+    async (data: {
+      username: string;
+      email: string;
+      role: Role;
+      organizationId: string | null;
+      active: boolean;
+    }) => {
+      if (!editUser) return;
+      const res = await fetch(`/api/users/${editUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        showToast(json.error ?? 'Fehler beim Speichern des Benutzers', 'error');
+        return;
+      }
+      const { data: updated } = await res.json();
+      setUsers((prev) => prev.map((u) => (u.id === editUser.id ? { ...u, ...updated } : u)));
+      setEditUser(null);
+      showToast('Benutzer aktualisiert', 'success');
+    },
+    [editUser, showToast],
+  );
 
   // ── User patch helper ───────────────────────────────────────────────────────
   const patchUser = useCallback(
@@ -1354,13 +1519,22 @@ export default function AdminPanel({
                   {format(new Date(user.createdAt), 'dd.MM.yyyy HH:mm')}
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    onClick={() => setDeleteUser(user)}
-                    title="Löschen"
-                    className="text-slate-400 hover:text-red-400 hover:bg-slate-800 p-1.5 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEditUser(user)}
+                      title="Bearbeiten"
+                      className="text-slate-400 hover:text-white hover:bg-slate-800 p-1.5 rounded-lg transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteUser(user)}
+                      title="Löschen"
+                      className="text-slate-400 hover:text-red-400 hover:bg-slate-800 p-1.5 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1476,6 +1650,14 @@ export default function AdminPanel({
           orgs={orgs}
           onClose={() => setCreateUserOpen(false)}
           onSave={handleCreateUser}
+        />
+      )}
+      {editUser && (
+        <EditUserModal
+          user={editUser}
+          orgs={orgs}
+          onClose={() => setEditUser(null)}
+          onSave={handleEditUser}
         />
       )}
       {deleteUser && (

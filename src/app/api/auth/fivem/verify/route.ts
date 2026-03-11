@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 const verifySchema = z.object({
   token: z.string().min(1),
   citizenId: z.string().min(1),
+  username: z.string().optional(), // Spielername für korrekte Username-Anlage
 });
 
 export async function POST(req: NextRequest) {
@@ -54,11 +55,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      // Create new user – role always OFFICER, never ADMIN
+      // Create new user – Spielername als Username, Bürger-ID als citizenId; Rolle immer OFFICER
       const tempPassword = await bcrypt.hash(randomUUID(), 10);
       user = await prisma.user.create({
         data: {
-          username: data.citizenId,
+          username: data.username ?? data.citizenId,
           email: `${data.citizenId}@fivem.local`,
           password: tempPassword,
           citizenId: data.citizenId,
