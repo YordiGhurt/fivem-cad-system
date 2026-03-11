@@ -181,7 +181,53 @@ TriggerServerEvent('cad:server:flagVehicle', 'ABCD123', true, 'Gestohlen')
 
 ---
 
-## API-Referenz
+## FiveM Ingame-Login (Cookie-Konfiguration)
+
+### Lokal / Entwicklung
+
+Damit der automatische Login im FiveM-Ingame-Browser (CEF/Chromium) funktioniert, müssen die Session-Cookies mit kompatiblen Attributen gesetzt werden. Der CEF-Browser speichert Cookies auf `http://`-URLs **nicht**, wenn das `Secure`-Flag gesetzt ist.
+
+Das CAD-System erkennt dies automatisch anhand der `NEXTAUTH_URL`:
+
+| `NEXTAUTH_URL` | `secure` | Verwendung |
+|---|---|---|
+| `http://localhost:3000` | `false` | Lokale Entwicklung / FiveM lokal |
+| `https://dein-cad-server.de` | `true` | Produktion |
+
+Stelle sicher, dass in `.env` die korrekte URL gesetzt ist:
+
+```env
+# Lokal:
+NEXTAUTH_URL="http://localhost:3000"
+
+# Produktion:
+# NEXTAUTH_URL="https://dein-cad-server.de"
+```
+
+### Produktion
+
+> ⚠️ **Wichtig:** In der Produktion muss `NEXTAUTH_URL` auf eine `https://`-URL gesetzt sein.
+> Nur so wird der Cookie mit `secure: true` gesetzt, was für die Sicherheit zwingend erforderlich ist.
+> Außerdem muss der FiveM-Server die CAD-URL über HTTPS erreichen können.
+
+Schritte für Produktion:
+
+1. `NEXTAUTH_URL="https://dein-cad-server.de"` in `.env` setzen
+2. `NEXTAUTH_SECRET` auf einen langen, zufälligen Wert setzen
+3. SSL-Zertifikat sicherstellen (z. B. via Let's Encrypt / Caddy / nginx)
+
+### Fehlersuche
+
+Falls der Ingame-Login nicht funktioniert:
+
+- Prüfe, ob `NEXTAUTH_URL` exakt mit der URL übereinstimmt, über die das CAD aufgerufen wird
+- Prüfe im Server-Log, ob `POST /api/auth/callback/fivem-token` mit `200` antwortet
+- Falls danach `GET /api/auth/session` immer `{}` (leer) zurückgibt, liegt ein Cookie-Problem vor → `NEXTAUTH_URL` prüfen
+- In FiveM-Konsole (`F8`): `nui_devtools` eingeben, um Chrome DevTools für den Ingame-Browser zu öffnen und Cookies zu inspizieren
+
+---
+
+
 
 Alle API-Endpunkte erfordern eine gültige NextAuth-Session (außer `/api/sync/player`).
 

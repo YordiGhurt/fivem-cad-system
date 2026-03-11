@@ -53,13 +53,17 @@ function FivemAuthContent() {
         // Polling statt setTimeout: Der NextAuth-Session-Cookie wird asynchron gesetzt.
         // Ein fixer Delay führt zu Race Conditions auf langsameren Systemen. Deshalb
         // wird /api/auth/session wiederholt abgefragt, bis eine gültige Session vorliegt.
-        const maxAttempts = 10;
+        // credentials: 'include' stellt sicher, dass der Session-Cookie auch im
+        // FiveM CEF-Browser mitgesendet wird.
+        // 15 Versuche × 500 ms = 7,5 s – ausreichend für langsame CEF-Umgebungen
+        // und deutlich mehr als die typische Cookie-Propagierungszeit.
+        const maxAttempts = 15;
         const delayMs = 500;
         let sessionFound = false;
 
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
           await new Promise(resolve => setTimeout(resolve, delayMs));
-          const sessionResponse = await fetch('/api/auth/session');
+          const sessionResponse = await fetch('/api/auth/session', { credentials: 'include' });
           if (!sessionResponse.ok) continue;
           const sessionData = await sessionResponse.json();
           if (sessionData?.user?.id) {

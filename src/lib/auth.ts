@@ -3,6 +3,13 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 
+// Cookie-Konfiguration für FiveM CEF-Browser-Kompatibilität.
+// FiveM nutzt einen eingebetteten Chromium-Browser (CEF), der auf http://-URLs
+// keine Cookies mit dem Secure-Flag akzeptiert. Daher wird 'secure' aus der
+// NEXTAUTH_URL abgeleitet.
+// ⚠️ PRODUKTION: NEXTAUTH_URL auf https://... setzen, damit secure=true automatisch gilt.
+const isHttpsContext = process.env.NEXTAUTH_URL?.startsWith('https://') ?? false;
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -86,6 +93,22 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 Tage
+  },
+  // Explizite Cookie-Einstellungen für Kompatibilität mit dem FiveM-Ingame-Browser (CEF).
+  // Der CEF-Browser speichert Cookies auf http://-URLs nicht, wenn secure=true gesetzt ist.
+  // sameSite: 'lax' ist die sicherste Option, die mit CEF zuverlässig funktioniert.
+  // ⚠️ PRODUKTION: NEXTAUTH_URL auf https://... setzen – dann wird secure=true automatisch verwendet.
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        // secure: false bei http:// (lokal/FiveM), true bei https:// (Produktion)
+        secure: isHttpsContext,
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
