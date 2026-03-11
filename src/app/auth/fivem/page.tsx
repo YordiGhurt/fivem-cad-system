@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -9,6 +8,12 @@ function FivemAuthContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+
+  const addDebug = (msg: string) => {
+    console.log('[CAD Auth]', msg);
+    setDebugInfo(prev => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
+  };
 
   useEffect(() => {
     const username = searchParams.get('username');
@@ -21,23 +26,59 @@ function FivemAuthContent() {
     }
 
     async function doLogin() {
-      try {
-        const result = await signIn('fivem-credentials', {
-          username,
-          password: citizenId,
-          redirect: false,
-        });
+      addDebug(`Starte Login: username="${username}" citizenid="${citizenId}"`);
 
-        if (result?.error || !result?.ok) {
-          setStatus('error');
-          setErrorMsg('Anmeldung fehlgeschlagen. Spielername oder Bürger-ID ungültig.');
-          return;
+      try {
+        // Schritt 1: CSRF-Token von NextAuth holen
+        addDebug('Hole CSRF-Token...');
+        const csrfRes = await fetch('/api/auth/csrf', { credentials: 'include' });
+        if (!csrfRes.ok) {
+          throw new Error(`CSRF-Fetch fehlgeschlagen: ${csrfRes.status}`);
+        }
+        const { csrfToken } = await csrfRes.json();
+        addDebug(`CSRF-Token erhalten: ${csrfToken ? 'ja' : 'nein'}`);
+
+        if (!csrfToken) {
+          throw new Error('Kein CSRF-Token erhalten');
         }
 
-        window.location.href = '/dashboard';
-      } catch {
+        // Schritt 2: Nativer Form-POST an NextAuth (kein redirect:false!)
+        // NextAuth setzt Cookie + redirect zu /dashboard in einer Transaktion.
+        // Kein Session-Check nötig!
+        addDebug('Sende Login-Request (nativer POST)...');
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/api/auth/callback/fivem-credentials';
+
+        const fields: Record<string, string> = {
+          csrfToken,
+          username: username!,
+          password: citizenId!,
+          callbackUrl: '/dashboard',
+          json: 'false',
+        };
+
+        for (const [key, value] of Object.entries(fields)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        addDebug('Formular wird abgeschickt → NextAuth übernimmt Redirect...');
+        form.submit();
+
+      } catch (e) {
+        addDebug(`Fehler: ${e}`);
         setStatus('error');
-        setErrorMsg('Verbindungsfehler. Bitte erneut versuchen.');
+        setErrorMsg(
+          `Automatische Anmeldung fehlgeschlagen: ${e}. ` +
+          'Bitte /cad nochmal eingeben oder manuell unter ' +
+          (typeof window !== 'undefined' ? window.location.origin : '') + '/login anmelden.'
+        );
       }
     }
 
@@ -62,6 +103,14 @@ function FivemAuthContent() {
             >
               Erneut versuchen
             </button>
+            {debugInfo.length > 0 && (
+              <details className="mt-4 text-left" open>
+                <summary className="text-slate-500 text-xs cursor-pointer hover:text-slate-400">Debug-Info</summary>
+                <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono text-slate-400 space-y-1 max-h-40 overflow-y-auto">
+                  {debugInfo.map((line, i) => <div key={i}>{line}</div>)}
+                </div>
+              </details>
+            )}
           </div>
         </div>
       </div>
@@ -79,6 +128,14 @@ function FivemAuthContent() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">FiveM CAD System</h1>
           <p className="text-slate-400 text-sm">Automatische Anmeldung läuft…</p>
+          {debugInfo.length > 0 && (
+            <details className="mt-4 text-left">
+              <summary className="text-slate-500 text-xs cursor-pointer hover:text-slate-400">Debug-Info</summary>
+              <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono text-slate-400 space-y-1 max-h-32 overflow-y-auto">
+                {debugInfo.map((line, i) => <div key={i}>{line}</div>)}
+              </div>
+            </details>
+          )}
         </div>
       </div>
     </div>
