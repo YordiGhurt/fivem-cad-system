@@ -37,7 +37,7 @@ local function syncVehiclesFromDB(citizenid)
     if not Config.SyncVehicles then return end
     if not citizenid or citizenid == '' then return end
 
-    MySQL.query('SELECT plate, vehicle FROM player_vehicles WHERE citizenid = ?', {citizenid}, function(result)
+    exports['oxmysql']:execute('SELECT plate, vehicle FROM player_vehicles WHERE citizenid = ?', {citizenid}, function(result)
         if result and #result > 0 then
             local vehicleList = {}
             for _, row in ipairs(result) do
