@@ -32,6 +32,7 @@ import {
   BarChart2,
   Menu,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import RealtimeProvider from '@/components/RealtimeProvider';
 import NotificationBell from '@/components/NotificationBell';
@@ -84,6 +85,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/dashboard/citizens', label: 'Bürger', icon: Users, permKey: 'canViewCitizens' },
       { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car, permKey: 'canViewVehicles' },
+      { href: '/dashboard/licenses', label: 'Lizenzen', icon: ShieldCheck, permKey: 'canViewVehicles' },
       { href: '/dashboard/warrants', label: 'Haftbefehle', icon: FileWarning, permKey: 'canViewWarrants' },
       { href: '/dashboard/reports', label: 'Berichte', icon: FileText, permKey: 'canViewReports' },
       { href: '/dashboard/case-files', label: 'Parteiakten', icon: FolderOpen, permKey: 'canViewCaseFiles' },

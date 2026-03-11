@@ -121,6 +121,49 @@ export default async function CitizenDetailPage({
               </p>
             </div>
           )}
+
+          {/* Lizenzen */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <h2 className="text-white font-semibold mb-4">Lizenzen</h2>
+
+            {/* Fahrzeuglizenzen */}
+            <h3 className="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">
+              Fahrzeuglizenzen ({citizen.vehicles.length})
+            </h3>
+            {citizen.vehicles.length === 0 ? (
+              <p className="text-slate-500 text-sm mb-4">Keine registrierten Fahrzeuge</p>
+            ) : (
+              <ul className="space-y-1 mb-4">
+                {citizen.vehicles.map((vehicle) => (
+                  <li key={vehicle.id} className="flex items-center gap-2 text-sm">
+                    <span className="text-blue-400 font-mono">{vehicle.plate}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-slate-300">{vehicle.model}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Waffenlizenzen */}
+            <h3 className="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">
+              Waffenlizenzen ({citizen.weapons.filter((w) => w.licensed).length})
+            </h3>
+            {citizen.weapons.filter((w) => w.licensed).length === 0 ? (
+              <p className="text-slate-500 text-sm">Keine lizenzierten Waffen</p>
+            ) : (
+              <ul className="space-y-1">
+                {citizen.weapons
+                  .filter((w) => w.licensed)
+                  .map((weapon) => (
+                    <li key={weapon.id} className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-300 font-mono">{weapon.serialNumber}</span>
+                      <span className="text-slate-400">·</span>
+                      <span className="text-slate-300">{weapon.model}</span>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {/* Vehicles & Weapons */}
@@ -181,50 +224,44 @@ export default async function CitizenDetailPage({
             )}
           </div>
 
-          {/* Weapons */}
+          {/* Weapons – nur lizenzierte Waffen */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <h2 className="text-white font-semibold mb-4">
-              Waffen ({citizen.weapons.length})
+              Lizenzierte Waffen ({citizen.weapons.filter((w) => w.licensed).length})
             </h2>
-            {citizen.weapons.length === 0 ? (
-              <p className="text-slate-500 text-sm">Keine Waffen registriert</p>
+            {citizen.weapons.filter((w) => w.licensed).length === 0 ? (
+              <p className="text-slate-500 text-sm">Keine lizenzierten Waffen</p>
             ) : (
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-800">
                     <th className="text-left pb-2 text-slate-400 text-xs font-medium uppercase">Seriennummer</th>
                     <th className="text-left pb-2 text-slate-400 text-xs font-medium uppercase">Modell</th>
-                    <th className="text-left pb-2 text-slate-400 text-xs font-medium uppercase">Lizenziert</th>
                     <th className="text-left pb-2 text-slate-400 text-xs font-medium uppercase">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {citizen.weapons.map((weapon) => (
-                    <tr key={weapon.id} className="border-b border-slate-800/50">
-                      <td className="py-2 pr-4 text-slate-300 font-mono text-sm">
-                        {weapon.serialNumber}
-                      </td>
-                      <td className="py-2 pr-4 text-white text-sm">{weapon.model}</td>
-                      <td className="py-2 pr-4">
-                        {weapon.licensed ? (
-                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Ja</span>
-                        ) : (
-                          <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">Nein</span>
-                        )}
-                      </td>
-                      <td className="py-2">
-                        {weapon.flagged ? (
-                          <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full">
-                            Markiert
-                          </span>
-                        ) : (
-                          <span className="text-xs bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">
-                            OK
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {citizen.weapons
+                    .filter((w) => w.licensed)
+                    .map((weapon) => (
+                      <tr key={weapon.id} className="border-b border-slate-800/50">
+                        <td className="py-2 pr-4 text-slate-300 font-mono text-sm">
+                          {weapon.serialNumber}
+                        </td>
+                        <td className="py-2 pr-4 text-white text-sm">{weapon.model}</td>
+                        <td className="py-2">
+                          {weapon.flagged ? (
+                            <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full">
+                              Markiert
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">
+                              OK
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             )}
