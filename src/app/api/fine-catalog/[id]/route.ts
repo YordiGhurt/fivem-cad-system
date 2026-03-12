@@ -32,8 +32,26 @@ export async function GET(
   return NextResponse.json({ data: entry });
 }
 
-export async function PUT() {
-  return NextResponse.json({ error: 'Bußgeldkatalog-Einträge können nicht bearbeitet werden – deaktivieren und neu erstellen' }, { status: 405 });
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERVISOR')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    const data = updateSchema.parse(body);
+    const entry = await prisma.fineEntry.update({ where: { id }, data });
+    await createAdminLog('SYSTEM_CONFIG', `Bußgeldkatalog-Eintrag ${id} bearbeitet`, session.user.id, id, 'FineEntry');
+    return NextResponse.json({ data: entry });
+  } catch (error) {
+    console.error('[fine-catalog/:id PUT]', error);
+    return NextResponse.json({ error: 'Update failed' }, { status: 400 });
+  }
 }
 
 export async function DELETE(

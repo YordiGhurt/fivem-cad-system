@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import IncidentUnitsManager from '@/components/IncidentUnitsManager';
+import { PrintButton } from '@/components/PrintButton';
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'bg-red-500/20 text-red-400 border border-red-500/30',
@@ -56,6 +57,9 @@ export default async function IncidentDetailPage({
         >
           ← Zurück zu Einsätzen
         </Link>
+        <div className="ml-auto no-print">
+          <PrintButton label="Einsatz drucken" />
+        </div>
       </div>
 
       <div className="flex items-start justify-between mb-6">

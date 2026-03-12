@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media print {
+  nav, aside, .no-print { display: none !important; }
+  .print-break { page-break-after: always; }
+  body { background: white !important; color: black !important; }
+  a { color: black !important; text-decoration: none !important; }
+}
