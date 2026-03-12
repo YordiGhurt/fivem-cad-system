@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import RealtimeProvider from '@/components/RealtimeProvider';
 import NotificationBell from '@/components/NotificationBell';
+import DutyStatusWidget from '@/components/DutyStatusWidget';
 
 interface OrgPermission {
   canViewIncidents: boolean;
@@ -289,6 +290,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setSidebarOpen(false);
   }, [pathname]);
 
+  // ESC closes the CAD when running inside the FiveM NUI iframe
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        fetch('https://fivem-cad-bridge/closeCAD', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Für Admins/Supervisors die vollständige Navigation anzeigen
   const navGroups = isAdmin || isSupervisor ? fullNavGroups : getNavGroupsForOrgType(orgType);
 
@@ -369,6 +387,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <p className="text-slate-400 text-xs">{session?.user?.role}</p>
           </div>
         </div>
+        <DutyStatusWidget />
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors"

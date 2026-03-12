@@ -259,20 +259,10 @@ RegisterNetEvent('cad:server:requestLogin', function()
         return
     end
 
-    -- Prüfe ob der Job mehr als einen Rang hat
+    -- Prüfe ob der Job überhaupt existiert (kein harter Grade-Count-Check mehr)
     local jobData = QBCore.Shared.Jobs[job.name]
     if not jobData then
         TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'Kein CAD-Zugang – unbekannter Job.')
-        return
-    end
-
-    local gradeCount = 0
-    for _ in pairs(jobData.grades or {}) do
-        gradeCount = gradeCount + 1
-    end
-
-    if gradeCount < 2 then
-        TriggerClientEvent('cad:client:openCAD', source, nil, nil, 'Kein CAD-Zugang – dein Job hat keinen CAD-Zugriff.')
         return
     end
 
@@ -331,13 +321,12 @@ end)
 
 -- Einheit-Status aktualisieren (von Client-Trigger)
 RegisterNetEvent('cad:server:updateUnitStatus', function(unitId, status)
-    local source = source
-    local Player = QBCore.Functions.GetPlayer(source)
-    if not Player then return end
-
+    -- Kein Player-Check nötig – wir brauchen nur unitId und status für den API-Call
     PerformHttpRequest(Config.CAD_URL .. '/api/units/status', function(statusCode, responseText)
         if statusCode == 200 then
             print('[CAD Bridge] Unit-Status aktualisiert: ' .. unitId .. ' -> ' .. status)
+        else
+            print('[CAD Bridge] Unit-Status Fehler: ' .. tostring(statusCode) .. ' - ' .. tostring(responseText))
         end
     end, 'POST', json.encode({
         unitId = unitId,
