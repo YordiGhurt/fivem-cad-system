@@ -680,25 +680,34 @@ function RankPermissionsModal({
           </button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="space-y-3 mb-6">
-            {permissionLabels.map(({ key, label }) => (
-              <label key={key} className="flex items-center justify-between cursor-pointer group">
-                <span className="text-slate-300 text-sm group-hover:text-white transition-colors">
-                  {label}
-                </span>
-                <div
-                  onClick={() => setPerms({ ...perms, [key]: !perms[key] })}
-                  className={`w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
-                    perms[key] ? 'bg-blue-600' : 'bg-slate-600'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      perms[key] ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+          <div className="space-y-5 mb-6">
+            {permissionGroups.map((group) => (
+              <div key={group.label}>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  {group.label}
+                </p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  {group.keys.map(({ key, label }) => (
+                    <label key={key} className="flex items-center justify-between cursor-pointer group">
+                      <span className="text-slate-300 text-sm group-hover:text-white transition-colors">
+                        {label}
+                      </span>
+                      <div
+                        onClick={() => setPerms({ ...perms, [key]: !perms[key] })}
+                        className={`w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
+                          perms[key] ? 'bg-blue-600' : 'bg-slate-600'
+                        }`}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                            perms[key] ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </div>
+                    </label>
+                  ))}
                 </div>
-              </label>
+              </div>
             ))}
           </div>
           <div className="flex justify-end gap-3">

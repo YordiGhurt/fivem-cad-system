@@ -72,6 +72,15 @@ export default function NewUnitPage() {
         return;
       }
 
+      const data = await res.json();
+      const createdUnit = data.data;
+      if (createdUnit && window.parent !== window) {
+        window.parent.postMessage(
+          { action: 'setUnitId', unitId: createdUnit.id, callsign: createdUnit.callsign },
+          '*',
+        );
+      }
+
       router.push('/dashboard/units');
     } catch {
       setError('Netzwerkfehler');

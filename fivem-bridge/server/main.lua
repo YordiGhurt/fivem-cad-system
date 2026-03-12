@@ -321,20 +321,56 @@ end)
 
 -- Einheit-Status aktualisieren (von Client-Trigger)
 RegisterNetEvent('cad:server:updateUnitStatus', function(unitId, status)
-    -- Kein Player-Check nötig – wir brauchen nur unitId und status für den API-Call
-    PerformHttpRequest(Config.CAD_URL .. '/api/units/status', function(statusCode, responseText)
-        if statusCode == 200 then
-            print('[CAD Bridge] Unit-Status aktualisiert: ' .. unitId .. ' -> ' .. status)
-        else
-            print('[CAD Bridge] Unit-Status Fehler: ' .. tostring(statusCode) .. ' - ' .. tostring(responseText))
+    local source = source
+
+    -- Security: verify the unit belongs to this player before updating
+    cadApiGet('/api/units/' .. tostring(unitId), function(statusCode, responseText)
+        if statusCode ~= 200 then
+            print('[CAD Bridge] WARNUNG: Unit-Status-Update verweigert – Unit nicht gefunden: ' .. tostring(unitId) .. ' (Quelle: ' .. tostring(source) .. ')')
+            return
         end
-    end, 'POST', json.encode({
-        unitId = unitId,
-        status = status,
-    }), {
-        ['Content-Type'] = 'application/json',
-        ['x-api-key'] = Config.API_KEY,
-    })
+
+        local ok, unitData = pcall(json.decode, responseText)
+        if not ok or not unitData or not unitData.data then
+            print('[CAD Bridge] WARNUNG: Unit-Status-Update verweigert – ungültige Antwort für Unit: ' .. tostring(unitId))
+            return
+        end
+
+        -- Get the player's steam ID and compare with the unit owner's steamId
+        local Player = QBCore.Functions.GetPlayer(source)
+        if not Player then
+            print('[CAD Bridge] WARNUNG: Unit-Status-Update verweigert – Spielerdaten nicht verfügbar für Quelle ' .. tostring(source))
+            return
+        end
+
+        local citizenid = Player.PlayerData.citizenid
+        local unitCitizenId = unitData.data.user and unitData.data.user.citizenId
+
+        -- Deny if the unit has an owner but we cannot verify identity
+        if not unitCitizenId then
+            print('[CAD Bridge] WARNUNG: Unit-Status-Update verweigert – Unit ' .. tostring(unitId) .. ' hat keinen verifizierbaren Besitzer')
+            return
+        end
+
+        if citizenid ~= unitCitizenId then
+            print('[CAD Bridge] WARNUNG: Unit-Status-Update verweigert – Besitzerkonflikt für Unit ' .. tostring(unitId) .. ' (Spieler: ' .. tostring(citizenid) .. ', Unit-Besitzer: ' .. tostring(unitCitizenId) .. ')')
+            return
+        end
+
+        PerformHttpRequest(Config.CAD_URL .. '/api/units/status', function(sc, responseText)
+            if sc == 200 then
+                print('[CAD Bridge] Unit-Status aktualisiert: ' .. unitId .. ' -> ' .. status)
+            else
+                print('[CAD Bridge] Unit-Status Fehler: ' .. tostring(sc) .. ' - ' .. tostring(responseText))
+            end
+        end, 'POST', json.encode({
+            unitId = unitId,
+            status = status,
+        }), {
+            ['Content-Type'] = 'application/json',
+            ['x-api-key'] = Config.API_KEY,
+        })
+    end)
 end)
 
 -- Fahrzeug als gestohlen markieren

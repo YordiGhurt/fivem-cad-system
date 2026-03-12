@@ -7,7 +7,7 @@ export async function checkOrgPermission(
 ): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, organizationId: true },
+    select: { role: true, organizationId: true, rankId: true },
   });
 
   if (!user) return false;
@@ -26,5 +26,20 @@ export async function checkOrgPermission(
 
   if (!perms) return false;
 
-  return Boolean(perms[permissionKey]);
+  // Org-level check: permission must be explicitly enabled
+  if (!Boolean(perms[permissionKey])) return false;
+
+  // Rank-level check: if the user's rank explicitly disables this permission, deny access
+  if (user.rankId) {
+    const rank = await prisma.orgRank.findUnique({
+      where: { id: user.rankId },
+      select: { permissions: true },
+    });
+    if (rank) {
+      const rankPerms = rank.permissions as Record<string, boolean> | null;
+      if (rankPerms && rankPerms[permissionKey] === false) return false;
+    }
+  }
+
+  return true;
 }
