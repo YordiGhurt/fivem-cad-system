@@ -15,27 +15,28 @@ interface Organization {
 export default function NewOrgNewsPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const isAdminOrSupervisor =
+    session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERVISOR';
   const [form, setForm] = useState({
     title: '',
     content: '',
     pinned: false,
-    organizationId: '',
+    organizationId: session?.user?.organizationId ?? '',
   });
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!isAdminOrSupervisor) {
+      setForm((prev) => ({ ...prev, organizationId: session?.user?.organizationId ?? '' }));
+      return;
+    }
     fetch('/api/organizations')
       .then((r) => r.json())
-      .then((d) => {
-        setOrgs(d.data ?? []);
-        if (session?.user?.organizationId) {
-          setForm((prev) => ({ ...prev, organizationId: session.user.organizationId! }));
-        }
-      })
+      .then((d) => setOrgs(d.data ?? []))
       .catch(() => {});
-  }, [session?.user?.organizationId]);
+  }, [isAdminOrSupervisor, session?.user?.organizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,22 +107,24 @@ export default function NewOrgNewsPage() {
             />
           </div>
 
-          <div>
-            <label className={labelClass}>Organisation *</label>
-            <select
-              className={inputClass}
-              value={form.organizationId}
-              onChange={(e) => setForm({ ...form, organizationId: e.target.value })}
-              required
-            >
-              <option value="">— Organisation wählen —</option>
-              {orgs.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.callsign} – {org.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isAdminOrSupervisor && (
+            <div>
+              <label className={labelClass}>Organisation *</label>
+              <select
+                className={inputClass}
+                value={form.organizationId}
+                onChange={(e) => setForm({ ...form, organizationId: e.target.value })}
+                required
+              >
+                <option value="">— Organisation wählen —</option>
+                {orgs.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.callsign} – {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -176,3 +179,4 @@ export default function NewOrgNewsPage() {
     </div>
   );
 }
+

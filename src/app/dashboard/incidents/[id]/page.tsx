@@ -5,21 +5,13 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import IncidentUnitsManager from '@/components/IncidentUnitsManager';
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'bg-red-500/20 text-red-400 border border-red-500/30',
   PENDING: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
   CLOSED: 'bg-slate-500/20 text-slate-400 border border-slate-500/30',
   CANCELLED: 'bg-slate-600/20 text-slate-500 border border-slate-600/30',
-};
-
-const unitStatusColors: Record<string, string> = {
-  AVAILABLE: 'bg-green-500',
-  BUSY: 'bg-yellow-500',
-  ONSCENE: 'bg-orange-500',
-  OFFDUTY: 'bg-slate-500',
-  ENROUTE: 'bg-blue-500',
-  BREAK: 'bg-purple-500',
 };
 
 export default async function IncidentDetailPage({
@@ -179,31 +171,22 @@ export default async function IncidentDetailPage({
           </div>
 
           {/* Units */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <h3 className="text-slate-400 text-xs font-medium uppercase mb-3">
-              Zugewiesene Einheiten ({incident.units.length})
-            </h3>
-            {incident.units.length === 0 ? (
-              <p className="text-slate-500 text-xs">Keine Einheiten zugewiesen</p>
-            ) : (
-              <div className="space-y-2">
-                {incident.units.map((iu) => (
-                  <div key={iu.id} className="flex items-center gap-2">
-                    <div
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${unitStatusColors[iu.unit.status] ?? 'bg-slate-500'}`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm">{iu.unit.callsign}</p>
-                      <p className="text-slate-400 text-xs">
-                        {iu.unit.user.username} · {iu.unit.organization.callsign}
-                      </p>
-                    </div>
-                    <span className="text-xs text-slate-500">{iu.unit.status}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <IncidentUnitsManager
+            incidentId={incident.id}
+            organizationId={incident.organizationId}
+            initialUnits={incident.units.map((iu) => ({
+              id: iu.id,
+              unitId: iu.unit.id,
+              assignedAt: iu.assignedAt.toISOString(),
+              unit: {
+                id: iu.unit.id,
+                callsign: iu.unit.callsign,
+                status: iu.unit.status,
+                user: { username: iu.unit.user.username },
+                organization: { callsign: iu.unit.organization.callsign },
+              },
+            }))}
+          />
 
           {/* Details */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">

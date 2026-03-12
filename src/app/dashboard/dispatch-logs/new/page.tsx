@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 interface Organization {
@@ -12,13 +13,16 @@ interface Organization {
 
 export default function NewDispatchLogPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isAdminOrSupervisor =
+    session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERVISOR';
   const now = new Date();
   const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
 
   const [form, setForm] = useState({
-    organizationId: '',
+    organizationId: session?.user?.organizationId ?? '',
     shiftStart: localIso,
     shiftEnd: '',
     callsHandled: 0,
@@ -29,11 +33,15 @@ export default function NewDispatchLogPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!isAdminOrSupervisor) {
+      setForm((prev) => ({ ...prev, organizationId: session?.user?.organizationId ?? '' }));
+      return;
+    }
     fetch('/api/organizations')
       .then((r) => r.json())
       .then((d) => setOrgs(d.data ?? []))
       .catch(() => {});
-  }, []);
+  }, [isAdminOrSupervisor, session?.user?.organizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,22 +93,24 @@ export default function NewDispatchLogPage() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className={labelClass}>Organisation *</label>
-            <select
-              className={inputClass}
-              value={form.organizationId}
-              onChange={(e) => setForm({ ...form, organizationId: e.target.value })}
-              required
-            >
-              <option value="">— Organisation wählen —</option>
-              {orgs.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.callsign} – {org.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isAdminOrSupervisor && (
+            <div>
+              <label className={labelClass}>Organisation *</label>
+              <select
+                className={inputClass}
+                value={form.organizationId}
+                onChange={(e) => setForm({ ...form, organizationId: e.target.value })}
+                required
+              >
+                <option value="">— Organisation wählen —</option>
+                {orgs.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.callsign} – {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
