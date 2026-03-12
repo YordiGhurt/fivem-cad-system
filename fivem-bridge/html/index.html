@@ -2,55 +2,167 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CAD System</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: transparent; overflow: hidden; width: 100vw; height: 100vh; }
-    #cad-frame {
+    body { background: transparent; overflow: hidden; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+    #cad-overlay {
       display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      border: none;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9998;
+    }
+
+    #cad-panel {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 88vw;
+      height: 92vh;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.85);
       z-index: 9999;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      flex-direction: column;
+    }
+
+    #cad-titlebar {
+      height: 40px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      flex-shrink: 0;
+      cursor: default;
+      user-select: none;
+    }
+
+    #cad-title {
+      color: #94a3b8;
+      font-size: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #cad-title-dot {
+      width: 8px;
+      height: 8px;
+      background: #3b82f6;
+      border-radius: 50%;
+    }
+
+    #cad-close-btn {
+      width: 28px;
+      height: 28px;
+      background: transparent;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    #cad-close-btn:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+      color: white;
+    }
+
+    #cad-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      display: block;
     }
   </style>
 </head>
 <body>
-  <iframe id="cad-frame" allowfullscreen></iframe>
+  <div id="cad-overlay"></div>
+  <div id="cad-panel">
+    <div id="cad-titlebar">
+      <div id="cad-title">
+        <div id="cad-title-dot"></div>
+        CAD System
+      </div>
+      <button id="cad-close-btn" title="CAD schließen (ESC)">&#x2715;</button>
+    </div>
+    <iframe id="cad-frame" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  </div>
 
   <script>
-    const frame = document.getElementById('cad-frame');
+    var panel = document.getElementById('cad-panel');
+    var overlay = document.getElementById('cad-overlay');
+    var frame = document.getElementById('cad-frame');
+    var closeBtn = document.getElementById('cad-close-btn');
+    var trustedOrigin = null;
 
     function openCAD(url) {
+      try {
+        trustedOrigin = new URL(url).origin;
+      } catch (e) {
+        trustedOrigin = null;
+      }
       frame.src = url;
-      frame.style.display = 'block';
+      panel.style.display = 'flex';
+      overlay.style.display = 'block';
     }
 
     function closeCAD() {
-      frame.style.display = 'none';
+      panel.style.display = 'none';
+      overlay.style.display = 'none';
       frame.src = 'about:blank';
+      fetch('https://fivem-cad-bridge/closeCAD', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      }).catch(function () {});
     }
 
+    closeBtn.addEventListener('click', closeCAD);
+    overlay.addEventListener('click', closeCAD);
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        if (panel.style.display === 'flex') {
+          closeCAD();
+        }
+      }
+    });
+
     window.addEventListener('message', function (event) {
-      const data = event.data;
+      var data = event.data;
       if (!data || !data.action) return;
+      // Only accept messages from the trusted origin (the loaded CAD URL).
+      // Allow null origin for same-origin or sandboxed frames where origin is opaque.
+      if (trustedOrigin !== null && event.origin !== trustedOrigin) return;
 
       if (data.action === 'open') {
         openCAD(data.url || '');
       } else if (data.action === 'close') {
         closeCAD();
-      }
-    });
-
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') {
+      } else if (data.action === 'escape') {
         closeCAD();
-        fetch('https://fivem-cad-bridge/closeCAD', {
+      } else if (data.action === 'setUnitId') {
+        fetch('https://fivem-cad-bridge/setUnitId', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ unitId: data.unitId, callsign: data.callsign }),
         }).catch(function () {});
       }
     });

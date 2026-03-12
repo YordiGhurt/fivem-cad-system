@@ -290,17 +290,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setSidebarOpen(false);
   }, [pathname]);
 
-  // ESC closes the CAD when running inside the FiveM NUI iframe
+  // ESC closes the CAD – relay via postMessage to the parent index.html,
+  // which holds the NUI context and forwards the request to Lua.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-        fetch('https://fivem-cad-bridge/closeCAD', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        }).catch(() => {});
+        window.parent.postMessage({ action: 'escape' }, '*');
       }
     };
     window.addEventListener('keydown', handleKeyDown);

@@ -33,13 +33,9 @@ export default function DutyStatusWidget() {
   }, []);
 
   function notifyBridge(unitId: string, callsign: string) {
-    fetch('https://fivem-cad-bridge/setUnitId', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ unitId, callsign }),
-    }).catch(() => {
-      // Silent: only works inside FiveM NUI
-    });
+    // Relay via postMessage to the parent index.html, which holds the NUI context.
+    // Direct fetch to https://fivem-cad-bridge/ is blocked from cross-origin iframes.
+    window.parent.postMessage({ action: 'setUnitId', unitId, callsign }, '*');
   }
 
   async function setStatus(newStatus: UnitStatus) {
