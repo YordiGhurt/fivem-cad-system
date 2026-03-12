@@ -28,6 +28,7 @@ export default async function FineCatalogPage({
   const page = parseInt(sp.page ?? '1');
   const pageSize = 30;
   const isAdmin = session?.user?.role === 'ADMIN';
+  const canEdit = isAdmin || session?.user?.role === 'SUPERVISOR';
 
   const where: Record<string, unknown> = {};
   if (category) where.category = category;
@@ -115,6 +116,7 @@ export default async function FineCatalogPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Geldstrafe</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Haftzeit</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Beschlagnahmung</th>
+              {canEdit && <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktion</th>}
             </tr>
           </thead>
           <tbody>
@@ -145,6 +147,16 @@ export default async function FineCatalogPage({
                   <td className="px-4 py-3 text-slate-400 text-xs max-w-48 truncate">
                     {entry.seizure ?? '—'}
                   </td>
+                  {canEdit && (
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/dashboard/fine-catalog/${entry.id}/edit`}
+                        className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition-colors"
+                      >
+                        Bearbeiten
+                      </Link>
+                    </td>
+                  )}
                 </tr>
               ))
             )}

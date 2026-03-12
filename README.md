@@ -23,6 +23,14 @@ Ein vollständiges **Computer-Aided Dispatch (CAD) System** für FiveM / QBCore-
 - 🔌 **FiveM-Bridge** – Lua-Skript für QBCore-Integration
 - 🔒 **Authentifizierung** – NextAuth.js mit JWT-Sessions
 - 🐳 **Docker-Support** – Vollständige Docker Compose Konfiguration
+- 🔍 **Globale Suche** – Schnellsuche über Bürger, Fahrzeuge, Einsätze und Haftbefehle
+- 🚶 **Patrouillen** – Gruppen von Einheiten für koordinierte Einsätze
+- 👤 **Benutzerprofil** – Profil-Seite mit Passwort-Änderung und eigenen Einheiten
+- 🌙 **Dark/Light-Mode** – Umschaltbarer Anzeigemodus
+- 🖨️ **PDF-Druck** – Druckfreundliche Ansicht für Einsätze
+- 🗺️ **Live-GPS** – Echtzeit-GPS-Positionen der FiveM-Einheiten auf der Karte
+- 🔔 **Benachrichtigungs-Sound** – Audio-Alert für neue Einsätze im CAD-Interface
+- 🔗 **Webhook-API** – Externe Systeme können Einsätze und Status-Updates einsenden
 
 ---
 
@@ -492,6 +500,65 @@ fivem-cad-system/
 - Setze einen sicheren `CAD_API_KEY` für die FiveM-Bridge
 - Stelle sicher, dass die Datenbank nicht öffentlich zugänglich ist
 - Verwende HTTPS in der Produktion
+
+---
+
+## Neue Features
+
+### FiveM-Befehle
+
+| Befehl | Beschreibung |
+|---|---|
+| `/cad` | CAD-Interface öffnen/schließen |
+| `/setstatus [STATUS]` | Einheitenstatus setzen (AVAILABLE, BUSY, OFFDUTY, ONSCENE, ENROUTE, BREAK) |
+| `/assignunit [EINSATZ-NR]` | Aktive Einheit einem Einsatz zuweisen (z.B. `/assignunit CAD-2026-12345`) |
+| `/flagcar [KENNZEICHEN] [GRUND]` | Fahrzeug markieren |
+| `/stolen [KENNZEICHEN]` | Fahrzeug als gestohlen melden |
+| `/panic` | Panic-Button auslösen (F9) |
+
+### Auto Off-Duty bei Disconnect
+
+Wenn ein Spieler den Server verlässt, wird seine Einheit automatisch auf `OFFDUTY` gesetzt. Dies verhindert veraltete Einheitenstatus im CAD-Dashboard.
+
+### Profil-Seite (`/dashboard/profile`)
+
+- Zeigt Benutzerinformationen (Name, E-Mail, Rolle, Organisation)
+- Passwort-Änderung direkt im Browser
+- Übersicht der eigenen Einheiten
+
+### Globale Suche (`/dashboard/search`)
+
+Schnellsuche über alle wichtigen Datenbereiche:
+- Bürger (Name, Bürger-ID)
+- Fahrzeuge (Kennzeichen, Modell)
+- Einsätze (Einsatznummer, Typ, Standort)
+- Haftbefehle
+
+### Dark/Light-Mode Toggle
+
+Klick auf das Sonne/Mond-Symbol im Header wechselt zwischen dunklem und hellem Modus. Die Einstellung wird im `localStorage` gespeichert.
+
+### Webhook-API (`POST /api/webhook`)
+
+Externe Systeme können Events über die Webhook-API einsenden:
+
+```http
+POST /api/webhook
+x-webhook-key: <WEBHOOK_API_KEY>
+Content-Type: application/json
+
+{
+  "event": "incident.create",
+  "data": {
+    "type": "Einbruch",
+    "location": "Vinewood Hills",
+    "priority": 2,
+    "organizationId": "..."
+  }
+}
+```
+
+Erlaubte Events: `incident.create`, `unit.status`, `panic`
 
 ---
 

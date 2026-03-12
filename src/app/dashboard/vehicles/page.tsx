@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { PlateCheckButton } from './PlateCheckButton';
+import { FlagVehicleButton } from '@/components/FlagVehicleButton';
 
 interface SearchParams {
   search?: string;
@@ -118,12 +119,13 @@ export default async function VehiclesPage({
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Status</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Zulassung bis</th>
               <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Hinzugefügt</th>
+              <th className="text-left px-4 py-3 text-slate-400 text-xs font-medium uppercase">Aktion</th>
             </tr>
           </thead>
           <tbody>
             {vehicles.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
                   Keine Fahrzeuge gefunden
                 </td>
               </tr>
@@ -167,6 +169,9 @@ export default async function VehiclesPage({
                   </td>
                   <td className="px-4 py-3 text-slate-400 text-xs">
                     {format(new Date(vehicle.createdAt), 'dd.MM.yyyy')}
+                  </td>
+                  <td className="px-4 py-3">
+                    <FlagVehicleButton plate={vehicle.plate} currentlyFlagged={vehicle.flagged ?? false} />
                   </td>
                 </tr>
               ))

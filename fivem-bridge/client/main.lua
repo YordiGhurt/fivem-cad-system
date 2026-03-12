@@ -159,6 +159,10 @@ end)
 RegisterNetEvent('cad:client:incidentCreated', function(payload)
     if payload then
         QBCore.Functions.Notify('🚨 Neuer Einsatz: ' .. (payload.type or 'Unbekannt') .. ' - ' .. (payload.location or ''), 'warning', 6000)
+        -- Sound-Alert über NUI (nur wenn CAD geöffnet)
+        if cadOpen then
+            SendNUIMessage({ action = 'playAlert' })
+        end
     end
 end)
 
@@ -222,6 +226,23 @@ CreateThread(function()
         end
     end
 end)
+
+-- Befehl: /assignunit - Einheit einem Einsatz zuweisen
+RegisterCommand('assignunit', function(source, args)
+    local caseNumber = args[1]
+    if not caseNumber then
+        QBCore.Functions.Notify('Verwendung: /assignunit [EINSATZ-NR] (z.B. CAD-2026-12345)', 'error')
+        return
+    end
+
+    local unitId = LocalStorage and LocalStorage.cadUnitId or nil
+    if not unitId then
+        QBCore.Functions.Notify('Keine CAD-Einheit aktiv. Bitte zuerst im CAD anmelden.', 'error')
+        return
+    end
+
+    TriggerServerEvent('cad:server:assignUnit', unitId, caseNumber)
+end, false)
 
 print('[CAD Bridge] Client-Script geladen')
 

@@ -34,10 +34,15 @@ import {
   X,
   ShieldCheck,
   SendHorizontal,
+  Search,
+  Users2,
+  User,
 } from 'lucide-react';
 import RealtimeProvider from '@/components/RealtimeProvider';
 import NotificationBell from '@/components/NotificationBell';
 import DutyStatusWidget from '@/components/DutyStatusWidget';
+import MyUnitWidget from '@/components/MyUnitWidget';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface OrgPermission {
   canViewIncidents: boolean;
@@ -92,9 +97,11 @@ function getNavGroupsForOrgType(orgType: OrgType): NavGroup[] {
       {
         label: 'Dispatch',
         items: [
+          { href: '/dashboard/search', label: 'Suche', icon: Search },
           { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
           { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' },
           { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' },
+          { href: '/dashboard/patrols', label: 'Patrouillen', icon: Users2, permKey: 'canManageUnits' },
           { href: '/dashboard/map', label: 'Karte', icon: Map },
         ],
       },
@@ -128,6 +135,7 @@ function getNavGroupsForOrgType(orgType: OrgType): NavGroup[] {
       {
         label: 'DOJ',
         items: [
+          { href: '/dashboard/search', label: 'Suche', icon: Search },
           { href: '/dashboard/org-news', label: 'Org-News', icon: Newspaper, permKey: 'canViewNews' },
           { href: '/dashboard/citizens', label: 'Bürger', icon: Users, permKey: 'canViewCitizens' },
           { href: '/dashboard/charges', label: 'Anklagen', icon: FileSearch, permKey: 'canViewCharges' },
@@ -159,9 +167,11 @@ function getNavGroupsForOrgType(orgType: OrgType): NavGroup[] {
       {
         label: 'Dispatch',
         items: [
+          { href: '/dashboard/search', label: 'Suche', icon: Search },
           { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
           { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' },
           { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' },
+          { href: '/dashboard/patrols', label: 'Patrouillen', icon: Users2, permKey: 'canManageUnits' },
           { href: '/dashboard/map', label: 'Karte', icon: Map },
         ],
       },
@@ -191,6 +201,7 @@ function getNavGroupsForOrgType(orgType: OrgType): NavGroup[] {
     {
       label: 'Bürger-Portal',
       items: [
+        { href: '/dashboard/search', label: 'Suche', icon: Search },
         { href: '/dashboard/laws', label: 'Gesetze', icon: Scale },
         { href: '/dashboard/fine-catalog', label: 'Bußgeldkatalog', icon: BookOpen },
         { href: '/dashboard/vehicles', label: 'Fahrzeuge', icon: Car },
@@ -205,9 +216,11 @@ const fullNavGroups: NavGroup[] = [
   {
     label: 'Dispatch',
     items: [
+      { href: '/dashboard/search', label: 'Suche', icon: Search },
       { href: '/dashboard', label: 'Dispatch', icon: LayoutDashboard },
       { href: '/dashboard/incidents', label: 'Einsätze', icon: AlertTriangle, permKey: 'canViewIncidents' },
       { href: '/dashboard/units', label: 'Einheiten', icon: Radio, permKey: 'canManageUnits' },
+      { href: '/dashboard/patrols', label: 'Patrouillen', icon: Users2, permKey: 'canManageUnits' },
       { href: '/dashboard/map', label: 'Karte', icon: Map },
     ],
   },
@@ -385,6 +398,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
         <DutyStatusWidget />
+        <Link
+          href="/dashboard/profile"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors"
+        >
+          <User className="w-4 h-4" />
+          Mein Profil
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-colors"
@@ -446,7 +466,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           {/* Desktop notification bar */}
-          <div className="hidden md:flex items-center justify-end px-4 py-2 bg-slate-950 border-b border-slate-800/50">
+          <div className="hidden md:flex items-center justify-end gap-2 px-4 py-2 bg-slate-950 border-b border-slate-800/50">
+            <MyUnitWidget />
+            <ThemeToggle />
             <NotificationBell />
           </div>
 

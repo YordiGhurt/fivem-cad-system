@@ -505,3 +505,73 @@ AddEventHandler('txAdmin:serverRestarted', function()
 end)
 
 print('[CAD Bridge] Server-Script geladen')
+
+-- Event: Spieler verlässt Server → Einheit auf OFFDUTY setzen
+AddEventHandler('playerDropped', function(reason)
+    local source = source
+    local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then return end
+
+    local citizenid = Player.PlayerData.citizenid
+    if not citizenid then return end
+
+    print('[CAD Bridge] Spieler ' .. citizenid .. ' hat den Server verlassen (' .. reason .. ') – setze Einheit auf OFFDUTY')
+
+    cadApiPost('/api/fivem/unit-offduty', {
+        citizenId = citizenid,
+    }, function(statusCode, responseText)
+        if statusCode == 200 then
+            print('[CAD Bridge] Einheit von ' .. citizenid .. ' auf OFFDUTY gesetzt')
+        else
+            print('[CAD Bridge] Fehler beim OFFDUTY-Setzen für ' .. citizenid .. ': ' .. tostring(statusCode))
+        end
+    end)
+end)
+
+-- Event: Einheit einem Einsatz zuweisen (von Client)
+RegisterNetEvent('cad:server:assignUnit', function(unitId, caseNumber)
+    local source = source
+    local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then return end
+
+    cadApiPost('/api/fivem/assign-unit', {
+        unitId = unitId,
+        caseNumber = caseNumber,
+    }, function(statusCode, responseText)
+        if statusCode == 200 then
+            TriggerClientEvent('QBCore:Notify', source, 'Einheit dem Einsatz ' .. caseNumber .. ' zugewiesen', 'success')
+        else
+            TriggerClientEvent('QBCore:Notify', source, 'Fehler: Einsatz nicht gefunden oder bereits abgeschlossen', 'error')
+        end
+    end)
+end)
+
+-- GPS-Positionen aller Spieler senden (nur wenn AutoSync aktiv)
+CreateThread(function()
+    while true do
+        Wait(Config.SyncInterval or 5000)
+        if Config.AutoSync then
+            local units = {}
+            local players = GetPlayers()
+            for _, playerId in ipairs(players) do
+                local Player = QBCore.Functions.GetPlayer(tonumber(playerId))
+                if Player then
+                    local ped = GetPlayerPed(tonumber(playerId))
+                    if ped and ped ~= 0 then
+                        local coords = GetEntityCoords(ped)
+                        local citizenid = Player.PlayerData.citizenid or ''
+                        table.insert(units, {
+                            citizenId = citizenid,
+                            x = coords.x,
+                            y = coords.y,
+                            z = coords.z,
+                        })
+                    end
+                end
+            end
+            if #units > 0 then
+                cadApiPost('/api/fivem/gps', { units = units }, nil)
+            end
+        end
+    end
+end)
