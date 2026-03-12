@@ -13,6 +13,8 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Sicherstellen dass public/ existiert (wird von Next.js build benötigt)
+RUN mkdir -p public
 RUN npx prisma generate
 RUN npm run build
 
