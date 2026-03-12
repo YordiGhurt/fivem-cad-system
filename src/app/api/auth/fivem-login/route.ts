@@ -60,8 +60,9 @@ async function performFivemLogin(
   return { sessionCookies: setCookieHeaders };
 }
 
-// GET-Handler: Wird vom Browser direkt aufgerufen (window.location.href)
-// Setzt Cookie UND Redirect in einer einzigen Browser-Navigation → CEF-kompatibel
+// GET-Handler: Wird per fetch() aus dem Client aufgerufen (kein window.location.href).
+// Gibt 200 JSON { ok: true } zurück und setzt den Session-Cookie via Set-Cookie-Header.
+// Der Client navigiert danach selbst per window.location.replace('/dashboard').
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -84,8 +85,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL('/login?error=fivem-login-failed', req.url));
     }
 
-    // Redirect zu /dashboard MIT Session-Cookie in derselben Antwort
-    const response = NextResponse.redirect(new URL('/dashboard', req.url));
+    // JSON-Antwort statt Redirect – der Client navigiert selbst nach /dashboard.
+    // So werden die Set-Cookie-Header zuverlässig im fetch()-Response verarbeitet.
+    const response = NextResponse.json({ ok: true });
     for (const cookie of sessionCookies) {
       response.headers.append('set-cookie', cookie);
     }

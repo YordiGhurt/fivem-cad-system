@@ -19,10 +19,27 @@ function FivemAuthContent() {
       return;
     }
 
-    // Direkte Browser-Navigation zur serverseitigen Login-Route.
-    // Der Server setzt Cookie + Redirect in einer Antwort → funktioniert zuverlässig im FiveM CEF-Browser.
+    // Login per fetch() statt window.location.href.
+    // Dadurch kein 307-Redirect im iframe, der das NUI-Overlay zerstört.
+    // Der Cookie wird via Set-Cookie im Response gesetzt (credentials: 'include').
     const params = new URLSearchParams({ username, citizenid: citizenId });
-    window.location.href = `/api/auth/fivem-login?${params.toString()}`;
+    fetch(`/api/auth/fivem-login?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+      .then((res) => {
+        if (res.ok) {
+          // Cookie ist jetzt gesetzt – sauber zu /dashboard navigieren
+          window.location.replace('/dashboard');
+        } else {
+          setStatus('error');
+          setErrorMsg('Login fehlgeschlagen. Bitte /cad ingame erneut verwenden.');
+        }
+      })
+      .catch(() => {
+        setStatus('error');
+        setErrorMsg('Netzwerkfehler. Bitte /cad ingame erneut verwenden.');
+      });
   }, [searchParams]);
 
   if (status === 'error') {
