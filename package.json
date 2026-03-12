@@ -2,6 +2,9 @@
   "name": "fivem-cad-system",
   "version": "1.0.0",
   "private": true,
+  "browserslist": [
+    "chrome >= 85"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
