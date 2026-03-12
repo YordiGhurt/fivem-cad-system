@@ -7,18 +7,23 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
   const router = useRouter();
 
   useEffect(() => {
-    const eventSource = new EventSource('/api/sse');
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const es = new EventSource('/api/sse');
 
-    eventSource.onmessage = () => {
-      router.refresh();
+    es.onmessage = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        router.refresh();
+      }, 500);
     };
 
-    eventSource.onerror = () => {
+    es.onerror = () => {
       // Reconnect is handled automatically by EventSource
     };
 
     return () => {
-      eventSource.close();
+      es.close();
+      if (debounceTimer) clearTimeout(debounceTimer);
     };
   }, [router]);
 

@@ -3,15 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
 import { format } from 'date-fns';
-
-const statusColors: Record<string, string> = {
-  AVAILABLE: 'bg-green-500/20 text-green-400 border border-green-500/30',
-  BUSY: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
-  ONSCENE: 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
-  OFFDUTY: 'bg-slate-500/20 text-slate-400 border border-slate-500/30',
-  ENROUTE: 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
-  BREAK: 'bg-purple-500/20 text-purple-400 border border-purple-500/30',
-};
+import UnitStatusChanger from '@/components/UnitStatusChanger';
 
 const statusDots: Record<string, string> = {
   AVAILABLE: 'bg-green-500',
@@ -32,11 +24,15 @@ export default async function UnitsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
 
   const sp = await searchParams;
   const status = sp.status;
   const orgId = sp.orgId;
+
+  const isAdminOrSupervisor =
+    session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERVISOR';
+  const currentUserId = session?.user?.id;
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
@@ -137,9 +133,11 @@ export default async function UnitsPage({
               units.map((unit) => (
                 <tr key={unit.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full ${statusColors[unit.status] ?? 'bg-slate-500/20 text-slate-400'}`}>
-                      {unit.status}
-                    </span>
+                    <UnitStatusChanger
+                      unitId={unit.id}
+                      currentStatus={unit.status as 'AVAILABLE' | 'BUSY' | 'OFFDUTY' | 'ONSCENE' | 'ENROUTE' | 'BREAK'}
+                      canChange={isAdminOrSupervisor || unit.userId === currentUserId}
+                    />
                   </td>
                   <td className="px-4 py-3 text-white font-medium">{unit.callsign}</td>
                   <td className="px-4 py-3 text-slate-300 text-sm">{unit.user.username}</td>
