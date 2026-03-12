@@ -8,12 +8,6 @@ function FivemAuthContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-
-  const addDebug = (msg: string) => {
-    console.log('[CAD Auth]', msg);
-    setDebugInfo(prev => [...prev, `${new Date().toISOString().slice(11, 19)} ${msg}`]);
-  };
 
   useEffect(() => {
     const username = searchParams.get('username');
@@ -25,40 +19,10 @@ function FivemAuthContent() {
       return;
     }
 
-    async function doLogin() {
-      addDebug(`Starte Login: username="${username}" citizenid="${citizenId}"`);
-
-      try {
-        addDebug('Sende Login-Request an /api/auth/fivem-login...');
-
-        const res = await fetch('/api/auth/fivem-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ username, citizenId }),
-        });
-
-        const data = await res.json() as { ok?: boolean; error?: string };
-
-        if (!res.ok || !data.ok) {
-          throw new Error(data.error ?? `Server antwortete mit Status ${res.status}`);
-        }
-
-        addDebug('Login erfolgreich! Leite zum Dashboard weiter...');
-        window.location.href = '/dashboard';
-
-      } catch (e) {
-        addDebug(`Fehler: ${e}`);
-        setStatus('error');
-        setErrorMsg(
-          `Automatische Anmeldung fehlgeschlagen: ${e}. ` +
-          'Bitte /cad nochmal eingeben oder manuell unter ' +
-          (typeof window !== 'undefined' ? window.location.origin : '') + '/login anmelden.'
-        );
-      }
-    }
-
-    doLogin();
+    // Direkte Browser-Navigation zur serverseitigen Login-Route.
+    // Der Server setzt Cookie + Redirect in einer Antwort → funktioniert zuverlässig im FiveM CEF-Browser.
+    const params = new URLSearchParams({ username, citizenid: citizenId });
+    window.location.href = `/api/auth/fivem-login?${params.toString()}`;
   }, [searchParams]);
 
   if (status === 'error') {
@@ -79,14 +43,6 @@ function FivemAuthContent() {
             >
               Erneut versuchen
             </button>
-            {debugInfo.length > 0 && (
-              <details className="mt-4 text-left" open>
-                <summary className="text-slate-500 text-xs cursor-pointer hover:text-slate-400">Debug-Info</summary>
-                <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono text-slate-400 space-y-1 max-h-40 overflow-y-auto">
-                  {debugInfo.map((line, i) => <div key={i}>{line}</div>)}
-                </div>
-              </details>
-            )}
           </div>
         </div>
       </div>
@@ -104,14 +60,6 @@ function FivemAuthContent() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">FiveM CAD System</h1>
           <p className="text-slate-400 text-sm">Automatische Anmeldung läuft…</p>
-          {debugInfo.length > 0 && (
-            <details className="mt-4 text-left">
-              <summary className="text-slate-500 text-xs cursor-pointer hover:text-slate-400">Debug-Info</summary>
-              <div className="mt-2 p-2 bg-slate-800 rounded text-xs font-mono text-slate-400 space-y-1 max-h-32 overflow-y-auto">
-                {debugInfo.map((line, i) => <div key={i}>{line}</div>)}
-              </div>
-            </details>
-          )}
         </div>
       </div>
     </div>
