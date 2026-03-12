@@ -7,24 +7,46 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: transparent; overflow: hidden; width: 100vw; height: 100vh; }
+    #cad-frame {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      border: none;
+      z-index: 9999;
+    }
   </style>
 </head>
 <body>
+  <iframe id="cad-frame" allowfullscreen></iframe>
+
   <script>
+    const frame = document.getElementById('cad-frame');
+
+    function openCAD(url) {
+      frame.src = url;
+      frame.style.display = 'block';
+    }
+
+    function closeCAD() {
+      frame.style.display = 'none';
+      frame.src = 'about:blank';
+    }
+
     window.addEventListener('message', function (event) {
       const data = event.data;
       if (!data || !data.action) return;
 
       if (data.action === 'open') {
-        const url = data.url || '';
-        // WICHTIG: Direkt navigieren statt iframe – damit Cookies im CEF korrekt gesetzt werden.
-        // Ein <iframe> blockiert Cookie-Setzung (sameSite-Restriction in CEF/Chromium).
-        window.location.href = url;
+        openCAD(data.url || '');
+      } else if (data.action === 'close') {
+        closeCAD();
       }
     });
 
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
+        closeCAD();
         fetch('https://fivem-cad-bridge/closeCAD', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
