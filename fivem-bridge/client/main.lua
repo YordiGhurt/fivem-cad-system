@@ -29,9 +29,12 @@ local function openCADWithCredentials(username, citizenid)
 end
 
 -- CAD-Interface schließen
-local function closeCAD()
+-- notifyNUI: falls false, wird kein SendNUIMessage gesendet (verhindert Loop beim NUI-Callback)
+local function closeCAD(notifyNUI)
     cadOpen = false
-    SendNUIMessage({ action = 'close' })
+    if notifyNUI ~= false then
+        SendNUIMessage({ action = 'close' })
+    end
     SetNuiFocus(false, false)
 end
 
@@ -174,8 +177,9 @@ RegisterNetEvent('cad:client:showNotification', function(payload)
 end)
 
 -- NUI-Callback: CAD schließen
+-- Ruft closeCAD(false) auf, um eine SendNUIMessage-Loop zu vermeiden.
 RegisterNUICallback('closeCAD', function(data, cb)
-    closeCAD()
+    closeCAD(false)
     cb({})
 end)
 
