@@ -50,12 +50,6 @@ export async function POST(req: NextRequest) {
       gpsMap.set(unit.citizenId, { ...unit, updatedAt: now });
     }
 
-    // Remove stale entries (older than 30 seconds)
-    const staleThreshold = now - 30_000;
-    for (const [key, val] of gpsMap) {
-      if (val.updatedAt < staleThreshold) gpsMap.delete(key);
-    }
-
     return NextResponse.json({ message: 'GPS positions updated', count: units.length });
   } catch (error) {
     console.error('[fivem/gps POST]', error);
@@ -75,6 +69,12 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+  }
+
+  // Remove stale entries (older than 30 seconds) before returning
+  const staleThreshold = Date.now() - 30_000;
+  for (const [key, val] of gpsMap) {
+    if (val.updatedAt < staleThreshold) gpsMap.delete(key);
   }
 
   const positions = Array.from(gpsMap.values());

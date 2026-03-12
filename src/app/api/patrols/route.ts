@@ -10,7 +10,9 @@ interface Patrol {
   createdAt: string;
 }
 
-// In-memory patrol storage (session-based, ephemeral)
+// In-memory patrol storage (ephemeral, session-based by design).
+// Patrols are intentionally short-lived (shift-based) and don't need to survive server restarts.
+// For persistent patrols, add a Patrol model to the Prisma schema.
 declare global {
   // eslint-disable-next-line no-var
   var __patrols: Map<string, Patrol> | undefined;

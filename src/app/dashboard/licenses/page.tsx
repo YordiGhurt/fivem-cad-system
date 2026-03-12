@@ -10,8 +10,6 @@ interface SearchParams {
   tab?: string;
 }
 
-type LicencesJson = { driver?: boolean; fly?: boolean; gun?: boolean } | null;
-
 export default async function LicensesPage({
   searchParams,
 }: {
@@ -45,6 +43,17 @@ export default async function LicensesPage({
     ];
   }
 
+  // Build JSON filter for driver/fly licences using Prisma's PostgreSQL JSON path support
+  const licenceJsonFilter = tab === 'driver'
+    ? { path: ['driver'], equals: true }
+    : tab === 'fly'
+      ? { path: ['fly'], equals: true }
+      : undefined;
+
+  if (licenceJsonFilter && (tab === 'driver' || tab === 'fly')) {
+    citizenWhere.licences = licenceJsonFilter;
+  }
+
   const [weapons, weaponTotal, allCitizens, citizenTotal] = await Promise.all([
     tab === 'weapons'
       ? prisma.weapon.findMany({
@@ -64,6 +73,8 @@ export default async function LicensesPage({
       ? prisma.citizen.findMany({
           where: citizenWhere,
           orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+          skip: (page - 1) * pageSize,
+          take: pageSize,
         })
       : Promise.resolve([]),
     tab !== 'weapons'
@@ -71,13 +82,8 @@ export default async function LicensesPage({
       : Promise.resolve(0),
   ]);
 
-  // Filter client-side for driver / fly (JSON field filtering in Prisma is DB-dependent)
-  const filteredCitizens = allCitizens.filter((c) => {
-    const lic = c.licences as LicencesJson;
-    if (tab === 'driver') return lic?.driver === true;
-    if (tab === 'fly') return lic?.fly === true;
-    return false;
-  });
+  // filteredCitizens = DB-filtered result (pagination-aware)
+  const filteredCitizens = allCitizens;
 
   const total = tab === 'weapons' ? weaponTotal : citizenTotal;
   const totalPages = Math.ceil(total / pageSize);

@@ -547,6 +547,8 @@ RegisterNetEvent('cad:server:assignUnit', function(unitId, caseNumber)
 end)
 
 -- GPS-Positionen aller Spieler senden (nur wenn AutoSync aktiv)
+-- Hinweis: Nur aktive Spieler werden synchronisiert. Bei sehr vielen Spielern
+-- kann Config.SyncInterval erhöht werden um die API-Last zu reduzieren.
 CreateThread(function()
     while true do
         Wait(Config.SyncInterval or 5000)
