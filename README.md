@@ -137,6 +137,55 @@ docker compose down -v
 
 ---
 
+## Production Deployment (HTTPS)
+
+Dieses Setup deployt das CAD-System unter `https://cad.bigone1.net` mit Traefik als Reverse Proxy und automatischem Let's Encrypt SSL.
+
+### Voraussetzungen
+
+- DNS A-Record: `cad.bigone1.net` → `54.36.111.6` (Server-IP)
+- Ports 80 und 443 auf dem Server geöffnet
+- Docker und Docker Compose auf dem Server installiert
+
+### Deployment-Schritte
+
+```bash
+# 1. .env-Datei aus Vorlage erstellen
+cp .env.example .env
+
+# 2. NEXTAUTH_SECRET generieren und in .env eintragen
+openssl rand -base64 32
+
+# 3. .env anpassen: Passwörter und API-Key setzen
+#    POSTGRES_PASSWORD, NEXTAUTH_SECRET, CAD_API_KEY müssen geändert werden
+
+# 4. Container starten (Traefik holt SSL-Zertifikat automatisch von Let's Encrypt)
+docker compose up -d
+
+# 5. Prisma-Migrationen ausführen
+docker compose exec cad-app npx prisma migrate deploy
+```
+
+Die Anwendung ist danach unter **https://cad.bigone1.net** erreichbar.
+Traefik leitet HTTP automatisch auf HTTPS um.
+
+### FiveM-Bridge konfigurieren
+
+In `fivem-bridge/config.lua` sicherstellen:
+
+```lua
+Config.CAD_URL = "https://cad.bigone1.net"
+Config.API_KEY  = "dein-wert-aus-.env-CAD_API_KEY"
+```
+
+> **Warum HTTPS für den FiveM-Login wichtig ist:**
+> Der FiveM CEF-Browser kann Cookies in iframes nur zuverlässig speichern, wenn sie
+> `SameSite=None; Secure` gesetzt haben. Diese Cookie-Flags sind nur unter HTTPS gültig.
+> Sobald `NEXTAUTH_URL` mit `https://` beginnt, aktiviert das CAD-System automatisch
+> `SameSite=None; Secure` – genau wie SnailyCAD mit `SECURE_COOKIES_FOR_IFRAME=true`.
+
+---
+
 ## FiveM-Bridge
 
 Die FiveM-Bridge ermöglicht die direkte Integration mit QBCore.

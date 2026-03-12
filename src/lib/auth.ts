@@ -6,10 +6,11 @@ import { Role } from '@prisma/client';
 import { prisma } from './prisma';
 
 // Cookie-Konfiguration für FiveM CEF-Browser-Kompatibilität.
-// FiveM nutzt einen eingebetteten Chromium-Browser (CEF), der auf http://-URLs
-// keine Cookies mit dem Secure-Flag akzeptiert. Daher wird 'secure' aus der
-// NEXTAUTH_URL abgeleitet.
-// ⚠️ PRODUKTION: NEXTAUTH_URL auf https://... setzen, damit secure=true automatisch gilt.
+// FiveM nutzt einen eingebetteten Chromium-Browser (CEF), der Cookies in iframes
+// nur dann zuverlässig speichert, wenn sie SameSite=None; Secure gesetzt haben.
+// Diese Flags sind nur unter HTTPS gültig – daher wird 'secure' und 'sameSite'
+// aus der NEXTAUTH_URL abgeleitet.
+// ✅ PRODUKTION: NEXTAUTH_URL auf https://... setzen → SameSite=None; Secure wird automatisch aktiviert.
 const isHttpsContext = process.env.NEXTAUTH_URL?.startsWith('https://') ?? false;
 
 export const authOptions: NextAuthOptions = {
@@ -140,17 +141,17 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 Tage
   },
   // Explizite Cookie-Einstellungen für Kompatibilität mit dem FiveM-Ingame-Browser (CEF).
-  // Der CEF-Browser speichert Cookies auf http://-URLs nicht, wenn secure=true gesetzt ist.
-  // sameSite: 'lax' ist die sicherste Option, die mit CEF zuverlässig funktioniert.
-  // ⚠️ PRODUKTION: NEXTAUTH_URL auf https://... setzen – dann wird secure=true automatisch verwendet.
+  // Mit HTTPS (Produktion): SameSite=None; Secure → Cookies funktionieren in iframes (FiveM CEF).
+  // Mit HTTP (lokal): SameSite=lax; secure=false als Fallback.
   cookies: {
     sessionToken: {
       name: 'next-auth.session-token',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        // Mit HTTPS: SameSite=None ermöglicht Cookie-Übertragung im iframe (FiveM CEF)
+        // Mit HTTP (lokal): SameSite=lax als Fallback
+        sameSite: isHttpsContext ? 'none' : 'lax',
         path: '/',
-        // secure: false bei http:// (lokal/FiveM), true bei https:// (Produktion)
         secure: isHttpsContext,
       },
     },
@@ -158,7 +159,7 @@ export const authOptions: NextAuthOptions = {
       name: 'next-auth.csrf-token',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: isHttpsContext ? 'none' : 'lax',
         path: '/',
         secure: isHttpsContext,
       },
@@ -167,7 +168,7 @@ export const authOptions: NextAuthOptions = {
       name: 'next-auth.callback-url',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: isHttpsContext ? 'none' : 'lax',
         path: '/',
         secure: isHttpsContext,
       },
