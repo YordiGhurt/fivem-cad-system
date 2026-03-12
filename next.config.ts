@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
   },
   serverExternalPackages: ['@prisma/client', 'prisma', 'bcryptjs'],
+  allowedDevOrigins: ['https://cad.bigone1.net'],
 };
 
 export default nextConfig;

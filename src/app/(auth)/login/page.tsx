@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +22,8 @@ export default function LoginPage() {
     if (result?.error) {
       setError('Ungültige Anmeldedaten');
     } else {
-      router.push('/dashboard');
+      // Hard redirect so the newly set session cookie is sent with the next request
+      window.location.href = '/dashboard';
     }
   }
 
