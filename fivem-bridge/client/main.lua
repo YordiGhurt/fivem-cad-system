@@ -30,7 +30,6 @@ end
 
 -- CAD-Interface schließen
 local function closeCAD()
-    if not cadOpen then return end
     cadOpen = false
     SendNUIMessage({ action = 'close' })
     SetNuiFocus(false, false)
@@ -210,10 +209,10 @@ RegisterCommand('syncvehicles', function()
     QBCore.Functions.Notify('Fahrzeuge werden synchronisiert...', 'primary')
 end, false)
 
--- ESC schließt CAD
+-- Fallback: ESC schließt CAD (falls NUI-Callback nicht ankommt)
 CreateThread(function()
     while true do
-        Wait(0)
+        Wait(100)
         if cadOpen and IsControlJustPressed(0, 200) then -- ESC
             closeCAD()
         end
