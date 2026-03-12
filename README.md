@@ -137,52 +137,85 @@ docker compose down -v
 
 ---
 
-## Production Deployment (HTTPS)
-
-Dieses Setup deployt das CAD-System unter `https://cad.bigone1.net` mit Traefik als Reverse Proxy und automatischem Let's Encrypt SSL.
+## Production Deployment (HTTPS mit Apache/KeyHelp)
 
 ### Voraussetzungen
 
-- DNS A-Record: `cad.bigone1.net` → `54.36.111.6` (Server-IP)
-- Ports 80 und 443 auf dem Server geöffnet
-- Docker und Docker Compose auf dem Server installiert
+- Server mit Docker und Docker Compose
+- Apache2 / KeyHelp läuft bereits auf Port 80/443
+- DNS A-Record: `cad.bigone1.net` → Server-IP
+- SSL-Zertifikat für `cad.bigone1.net` (über KeyHelp/Let's Encrypt)
 
-### Deployment-Schritte
+### 1. Repo klonen und .env anlegen
 
 ```bash
-# 1. .env-Datei aus Vorlage erstellen
+git clone https://github.com/YordiGhurt/fivem-cad-system.git
+cd fivem-cad-system
 cp .env.example .env
+```
 
-# 2. NEXTAUTH_SECRET generieren und in .env eintragen
+### 2. .env anpassen
+
+Folgende Werte MÜSSEN geändert werden:
+
+```bash
+# Zufälligen Secret generieren:
 openssl rand -base64 32
+```
 
-# 3. .env anpassen: Passwörter und API-Key setzen
-#    POSTGRES_PASSWORD, NEXTAUTH_SECRET, CAD_API_KEY müssen geändert werden
+Dann in `.env` setzen:
+- `POSTGRES_PASSWORD` – sicheres Datenbankpasswort
+- `NEXTAUTH_SECRET` – der generierte zufällige String
+- `CAD_API_KEY` – beliebiger sicherer API-Key (muss mit FiveM-Bridge übereinstimmen)
 
-# 4. Container starten (Traefik holt SSL-Zertifikat automatisch von Let's Encrypt)
+### 3. Docker starten
+
+```bash
 docker compose up -d
+```
 
-# 5. Prisma-Migrationen ausführen
+Der Container läuft auf `127.0.0.1:3000` (nur intern erreichbar).
+
+### 4. Datenbank migrieren
+
+```bash
 docker compose exec cad-app npx prisma migrate deploy
+docker compose exec cad-app npx prisma db seed
 ```
 
-Die Anwendung ist danach unter **https://cad.bigone1.net** erreichbar.
-Traefik leitet HTTP automatisch auf HTTPS um.
+### 5. Apache/KeyHelp konfigurieren
 
-### FiveM-Bridge konfigurieren
+In KeyHelp unter **Erweiterte Direktiven** für die Domain `cad.bigone1.net` folgende Direktiven eintragen (siehe `deploy/apache-vhost.conf`):
 
-In `fivem-bridge/config.lua` sicherstellen:
+```apache
+<IfModule mod_proxy.c>
+    ProxyPass /.well-known/acme-challenge !
+</IfModule>
 
-```lua
-Config.CAD_URL = "https://cad.bigone1.net"
-Config.API_KEY  = "dein-wert-aus-.env-CAD_API_KEY"
+Alias /.well-known/acme-challenge /home/keyhelp/www/.well-known/acme-challenge
+
+ProxyRequests Off
+ProxyPreserveHost On
+ProxyPass / http://127.0.0.1:3000/
+ProxyPassReverse / http://127.0.0.1:3000/
+
+RewriteEngine On
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteCond %{HTTP:Connection} upgrade [NC]
+RewriteRule ^/?(.*) "ws://127.0.0.1:3000/$1" [P,L]
 ```
 
-> **Warum HTTPS für den FiveM-Login wichtig ist:**
-> Der FiveM CEF-Browser kann Cookies in iframes nur zuverlässig speichern, wenn sie
-> `SameSite=None; Secure` gesetzt haben. Diese Cookie-Flags sind nur unter HTTPS gültig.
-> Sobald `NEXTAUTH_URL` mit `https://` beginnt, aktiviert das CAD-System automatisch
-> `SameSite=None; Secure` – genau wie SnailyCAD mit `SECURE_COOKIES_FOR_IFRAME=true`.
+> **Hinweis:** Kein `SSLProxyEngine On` nötig – Docker läuft intern über HTTP. Apache übernimmt die SSL-Terminierung.
+
+### 6. FiveM Bridge konfigurieren
+
+In `fivem-bridge/config.lua`:
+- `Config.CAD_URL` auf `"https://cad.bigone1.net"` setzen
+- `Config.API_KEY` auf denselben Wert wie `CAD_API_KEY` in `.env` setzen
+
+### Warum HTTPS den FiveM-Login-Bug löst
+
+Der FiveM CEF-Browser benötigt `SameSite=None; Secure` Cookies, damit Sessions in iframes funktionieren. Diese Cookie-Flags sind nur mit HTTPS gültig. Mit `NEXTAUTH_URL=https://...` setzt das CAD-System automatisch die korrekten Cookie-Attribute.
 
 ---
 
