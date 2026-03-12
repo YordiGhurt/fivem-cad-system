@@ -33,7 +33,13 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 
-RUN mkdir -p public/reports && chown nextjs:nodejs public/reports
+# Prisma Client + Engine in den Standalone-Build kopieren
+# Next.js Standalone kopiert node_modules nicht vollständig – Prisma muss manuell nachgezogen werden
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
+
+RUN mkdir -p public/reports && chown -R nextjs:nodejs public/reports node_modules/.prisma node_modules/@prisma node_modules/bcryptjs
 
 USER nextjs
 EXPOSE 3000
