@@ -5,15 +5,14 @@ services:
     image: postgres:16-alpine
     container_name: cad-postgres
     environment:
-      POSTGRES_USER: cad_user
-      POSTGRES_PASSWORD: cad_password
-      POSTGRES_DB: cad_db
+      POSTGRES_USER: ${POSTGRES_USER:-cad_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cad_password}
+      POSTGRES_DB: ${POSTGRES_DB:-cad_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cad_user -d cad_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cad_user} -d ${POSTGRES_DB:-cad_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,18 +23,20 @@ services:
       dockerfile: Dockerfile
     container_name: cad-app
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
-      DATABASE_URL: postgresql://cad_user:cad_password@postgres:5432/cad_db
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-this-secret}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
-      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-http://localhost:3000}
-      CAD_API_KEY: ${CAD_API_KEY:-change-this-api-key}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cad_user}:${POSTGRES_PASSWORD:-cad_password}@postgres:5432/${POSTGRES_DB:-cad_db}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://cad.bigone1.net}
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-https://cad.bigone1.net}
+      CAD_API_KEY: ${CAD_API_KEY}
+      NODE_ENV: production
     volumes:
       - pdf_reports:/app/public/reports
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
       interval: 30s
