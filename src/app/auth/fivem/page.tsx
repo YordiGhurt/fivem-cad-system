@@ -29,47 +29,23 @@ function FivemAuthContent() {
       addDebug(`Starte Login: username="${username}" citizenid="${citizenId}"`);
 
       try {
-        // Schritt 1: CSRF-Token von NextAuth holen
-        addDebug('Hole CSRF-Token...');
-        const csrfRes = await fetch('/api/auth/csrf', { credentials: 'include' });
-        if (!csrfRes.ok) {
-          throw new Error(`CSRF-Fetch fehlgeschlagen: ${csrfRes.status}`);
-        }
-        const { csrfToken } = await csrfRes.json();
-        addDebug(`CSRF-Token erhalten: ${csrfToken ? 'ja' : 'nein'}`);
+        addDebug('Sende Login-Request an /api/auth/fivem-login...');
 
-        if (!csrfToken) {
-          throw new Error('Kein CSRF-Token erhalten');
-        }
+        const res = await fetch('/api/auth/fivem-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username, citizenId }),
+        });
 
-        // Schritt 2: Nativer Form-POST an NextAuth (kein redirect:false!)
-        // NextAuth setzt Cookie + redirect zu /dashboard in einer Transaktion.
-        // Kein Session-Check nötig!
-        addDebug('Sende Login-Request (nativer POST)...');
+        const data = await res.json() as { ok?: boolean; error?: string };
 
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/api/auth/callback/fivem-credentials';
-
-        const fields: Record<string, string> = {
-          csrfToken,
-          username: username!,
-          password: citizenId!,
-          callbackUrl: '/dashboard',
-          json: 'false',
-        };
-
-        for (const [key, value] of Object.entries(fields)) {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error ?? `Server antwortete mit Status ${res.status}`);
         }
 
-        document.body.appendChild(form);
-        addDebug('Formular wird abgeschickt → NextAuth übernimmt Redirect...');
-        form.submit();
+        addDebug('Login erfolgreich! Leite zum Dashboard weiter...');
+        window.location.href = '/dashboard';
 
       } catch (e) {
         addDebug(`Fehler: ${e}`);
