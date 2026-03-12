@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ArrowLeft, Users, Radio, AlertTriangle, Shield, Layers } from 'lucide-react';
+import RanksWithPermissions from '@/components/RanksWithPermissions';
 
 const typeColors: Record<string, string> = {
   POLICE: 'bg-blue-500/20 text-blue-400',
@@ -47,7 +48,9 @@ export default async function OrganizationDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
+  const canEditRanks =
+    session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPERVISOR';
 
   const { id } = await params;
 
@@ -226,23 +229,19 @@ export default async function OrganizationDetailPage({
             <Layers className="w-4 h-4 text-slate-400" />
             <h2 className="text-white font-semibold">Ränge</h2>
           </div>
-          <div className="divide-y divide-slate-800">
-            {org.ranks.length === 0 && (
-              <p className="text-slate-400 text-sm px-5 py-4">Keine Ränge definiert</p>
-            )}
-            {org.ranks.map((rank) => (
-              <div key={rank.id} className="px-5 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: rank.color }}
-                  />
-                  <span className="text-white text-sm">{rank.name}</span>
-                </div>
-                <span className="text-slate-500 text-xs">Level {rank.level}</span>
-              </div>
-            ))}
-          </div>
+          <RanksWithPermissions
+            orgId={org.id}
+            ranks={org.ranks.map((r) => ({
+              id: r.id,
+              organizationId: r.organizationId,
+              name: r.name,
+              level: r.level,
+              color: r.color,
+              permissions: (r.permissions as Record<string, boolean> | null) ?? null,
+              createdAt: r.createdAt.toISOString(),
+            }))}
+            canEdit={canEditRanks}
+          />
         </div>
 
         {/* Permissions */}
