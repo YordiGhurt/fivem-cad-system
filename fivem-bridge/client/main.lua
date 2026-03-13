@@ -3,6 +3,7 @@
 
 local QBCore = exports['qb-core']:GetCoreObject()
 local cadOpen = false
+local nuiFocusActive = false  -- trackt ob SetNuiFocus(true, true) aktiv ist
 local cadUnitId = nil
 local cadUnitCallsign = nil
 
@@ -27,12 +28,14 @@ local function openCADWithCredentials(username, citizenid)
         url = url,
     })
     SetNuiFocus(true, true)
+    nuiFocusActive = true
 end
 
 -- CAD-Interface schließen
 -- notifyNUI: falls false, wird kein SendNUIMessage gesendet (verhindert Loop beim NUI-Callback)
 local function closeCAD(notifyNUI)
     cadOpen = false
+    nuiFocusActive = false
     if notifyNUI ~= false then
         SendNUIMessage({ action = 'close' })
     end
@@ -235,11 +238,17 @@ RegisterCommand('syncvehicles', function()
 end, false)
 
 -- Fallback: ESC schließt CAD (falls NUI-Callback nicht ankommt)
+-- Watchdog: stellt sicher dass NUI-Focus wirklich freigegeben wird
 CreateThread(function()
     while true do
         Wait(100)
         if cadOpen and IsControlJustPressed(0, 200) then -- ESC
             closeCAD(false)
+        end
+        -- Watchdog: Falls nuiFocusActive noch true aber cadOpen false → Focus nochmal freigeben
+        if nuiFocusActive and not cadOpen then
+            nuiFocusActive = false
+            SetNuiFocus(false, false)
         end
     end
 end)

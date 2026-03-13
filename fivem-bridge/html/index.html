@@ -131,12 +131,16 @@
       trustedOrigin = null;
       panel.style.display = 'none';
       overlay.style.display = 'none';
-      frame.src = 'about:blank';
+      // fetch ZUERST – damit der NUI-Callback zuverlässig ankommt bevor der iframe geleert wird
       fetch('https://fivem-cad-bridge/closeCAD', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       }).catch(function () {});
+      // frame.src NACH dem fetch leeren – verhindert dass der fetch gecancelt wird.
+      // 100ms Verzögerung reicht aus damit der NUI-Callback in Lua ankommt.
+      // (keepalive ist in FiveM NUI nicht verfügbar, daher setTimeout als Workaround)
+      setTimeout(function() { frame.src = 'about:blank'; }, 100);
     }
 
     closeBtn.addEventListener('click', closeCAD);
