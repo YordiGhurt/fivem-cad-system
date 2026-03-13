@@ -34,12 +34,12 @@ end
 -- CAD-Interface schließen
 -- notifyNUI: falls false, wird kein SendNUIMessage gesendet (verhindert Loop beim NUI-Callback)
 local function closeCAD(notifyNUI)
+    SetNuiFocus(false, false)
     cadOpen = false
     nuiFocusActive = false
     if notifyNUI ~= false then
         SendNUIMessage({ action = 'close' })
     end
-    SetNuiFocus(false, false)
 end
 
 -- Event vom Server: CAD mit Credentials öffnen oder Fehlermeldung anzeigen
@@ -242,8 +242,9 @@ end, false)
 CreateThread(function()
     while true do
         Wait(100)
-        if cadOpen and IsControlJustPressed(0, 200) then -- ESC
-            closeCAD(false)
+        -- IsDisabledControlJustPressed erkennt ESC auch wenn NUI-Focus aktiv ist
+        if cadOpen and IsDisabledControlJustPressed(0, 200) then -- ESC
+            closeCAD()
         end
         -- Watchdog: Falls nuiFocusActive noch true aber cadOpen false → Focus nochmal freigeben
         if nuiFocusActive and not cadOpen then

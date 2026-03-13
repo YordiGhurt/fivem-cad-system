@@ -132,7 +132,7 @@
       panel.style.display = 'none';
       overlay.style.display = 'none';
       // fetch ZUERST – damit der NUI-Callback zuverlässig ankommt bevor der iframe geleert wird
-      fetch('https://fivem-cad-bridge/closeCAD', {
+      fetch('https://' + GetParentResourceName() + '/closeCAD', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -170,20 +170,20 @@
         closeCAD();
       } else if (data.action === 'setUnit') {
         // Einheit wurde im CAD gesetzt – an Lua weitergeben
-        fetch('https://fivem-cad-bridge/setUnit', {
+        fetch('https://' + GetParentResourceName() + '/setUnit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ unitId: data.unitId, callsign: data.callsign }),
         }).catch(function () {});
       } else if (data.action === 'clearUnit') {
         // Einheit abgemeldet
-        fetch('https://fivem-cad-bridge/clearUnit', {
+        fetch('https://' + GetParentResourceName() + '/clearUnit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
         }).catch(function () {});
       } else if (data.action === 'setUnitId') {
-        fetch('https://fivem-cad-bridge/setUnitId', {
+        fetch('https://' + GetParentResourceName() + '/setUnitId', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ unitId: data.unitId, callsign: data.callsign }),
