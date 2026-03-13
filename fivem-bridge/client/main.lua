@@ -239,7 +239,7 @@ CreateThread(function()
     while true do
         Wait(100)
         if cadOpen and IsControlJustPressed(0, 200) then -- ESC
-            closeCAD()
+            closeCAD(false)
         end
     end
 end)
