@@ -3,6 +3,7 @@
 
 local QBCore = exports['qb-core']:GetCoreObject()
 local cadOpen = false
+local cadPendingOpen = false  -- verhindert doppelte Server-Requests (Race Condition Guard)
 local nuiFocusActive = false  -- trackt ob SetNuiFocus(true, true) aktiv ist
 local cadUnitId = nil
 local cadUnitCallsign = nil
@@ -18,6 +19,7 @@ end
 
 -- CAD-Interface öffnen (mit Credentials-basiertem Login: Spielername + Bürger-ID)
 local function openCADWithCredentials(username, citizenid)
+    cadPendingOpen = false  -- Server hat geantwortet, Pending-Flag zurücksetzen
     if cadOpen then return end
     cadOpen = true
     local encodedUsername = urlEncode(username)
@@ -34,6 +36,7 @@ end
 -- CAD-Interface schließen
 -- notifyNUI: falls false, wird kein SendNUIMessage gesendet (verhindert Loop beim NUI-Callback)
 local function closeCAD(notifyNUI)
+    cadPendingOpen = false  -- Pending-Flag immer zurücksetzen
     SetNuiFocus(false, false)
     cadOpen = false
     nuiFocusActive = false
@@ -57,8 +60,13 @@ end)
 RegisterCommand('cad', function()
     if cadOpen then
         closeCAD()
-    else
+    elseif not cadPendingOpen then
+        cadPendingOpen = true
         TriggerServerEvent('cad:server:requestLogin')
+        -- Timeout: Falls Server nicht antwortet, Flag zurücksetzen damit der Befehl erneut nutzbar ist
+        SetTimeout(5000, function()
+            cadPendingOpen = false
+        end)
     end
 end, false)
 
@@ -243,7 +251,7 @@ CreateThread(function()
     while true do
         Wait(100)
         -- IsDisabledControlJustPressed erkennt ESC auch wenn NUI-Focus aktiv ist
-        if cadOpen and IsDisabledControlJustPressed(0, 200) then -- ESC
+        if nuiFocusActive and IsDisabledControlJustPressed(0, 200) then -- ESC
             closeCAD()
         end
         -- Watchdog: Falls nuiFocusActive noch true aber cadOpen false → Focus nochmal freigeben
