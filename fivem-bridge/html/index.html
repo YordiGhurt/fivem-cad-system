@@ -158,9 +158,15 @@
     window.addEventListener('message', function (event) {
       var data = event.data;
       if (!data || !data.action) return;
-      // Only accept messages from the trusted origin (the loaded CAD URL).
-      // Allow null origin for same-origin or sandboxed frames where origin is opaque.
-      if (trustedOrigin !== null && event.origin !== trustedOrigin) return;
+      // Distinguish between messages from the iframe (CAD app) and NUI messages
+      // injected by the FiveM Lua bridge via SendNUIMessage().
+      // Lua NUI messages arrive with an empty/opaque origin, while iframe messages
+      // come from the trusted CAD URL origin.
+      var fromIframe = (event.source === frame.contentWindow);
+      // Only apply the origin check to messages that actually come from the iframe.
+      if (fromIframe && trustedOrigin !== null && event.origin !== trustedOrigin) return;
+      // Iframe-only actions must not be processed when they originate elsewhere.
+      if (!fromIframe && (data.action === 'setUnit' || data.action === 'clearUnit' || data.action === 'setUnitId')) return;
 
       if (data.action === 'open') {
         openCAD(data.url || '');
