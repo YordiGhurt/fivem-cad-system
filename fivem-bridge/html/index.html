@@ -126,10 +126,12 @@
     }
 
     function closeCAD() {
+      if (!isOpen) return;
+      isOpen = false;
+      trustedOrigin = null;
       panel.style.display = 'none';
       overlay.style.display = 'none';
       frame.src = 'about:blank';
-      isOpen = false;
       fetch('https://fivem-cad-bridge/closeCAD', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
