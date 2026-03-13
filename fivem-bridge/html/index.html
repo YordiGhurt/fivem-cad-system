@@ -111,6 +111,7 @@
     var frame = document.getElementById('cad-frame');
     var closeBtn = document.getElementById('cad-close-btn');
     var trustedOrigin = null;
+    var isOpen = false;
 
     function openCAD(url) {
       try {
@@ -121,12 +122,14 @@
       frame.src = url;
       panel.style.display = 'flex';
       overlay.style.display = 'block';
+      isOpen = true;
     }
 
     function closeCAD() {
       panel.style.display = 'none';
       overlay.style.display = 'none';
       frame.src = 'about:blank';
+      isOpen = false;
       fetch('https://fivem-cad-bridge/closeCAD', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -137,11 +140,14 @@
     closeBtn.addEventListener('click', closeCAD);
     overlay.addEventListener('click', closeCAD);
 
+    // ESC-Handler mit capture:true – greift auch wenn der iframe den Fokus hält
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
-        closeCAD();
+        if (isOpen) {
+          closeCAD();
+        }
       }
-    });
+    }, true);
 
     window.addEventListener('message', function (event) {
       var data = event.data;
@@ -154,8 +160,22 @@
         openCAD(data.url || '');
       } else if (data.action === 'close') {
         closeCAD();
-      } else if (data.action === 'escape') {
+      } else if (data.action === 'escape' || data.action === 'escPressed') {
         closeCAD();
+      } else if (data.action === 'setUnit') {
+        // Einheit wurde im CAD gesetzt – an Lua weitergeben
+        fetch('https://fivem-cad-bridge/setUnit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ unitId: data.unitId, callsign: data.callsign }),
+        }).catch(function () {});
+      } else if (data.action === 'clearUnit') {
+        // Einheit abgemeldet
+        fetch('https://fivem-cad-bridge/clearUnit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        }).catch(function () {});
       } else if (data.action === 'setUnitId') {
         fetch('https://fivem-cad-bridge/setUnitId', {
           method: 'POST',

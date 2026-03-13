@@ -3,6 +3,7 @@
 
 local QBCore = exports['qb-core']:GetCoreObject()
 local cadOpen = false
+local cadUnitId = nil
 local cadUnitCallsign = nil
 
 -- URL-Encoding: Sonderzeichen und Leerzeichen in URLs korrekt enkodieren
@@ -78,10 +79,10 @@ RegisterCommand('setstatus', function(source, args)
         return
     end
 
-    -- Einheit-ID aus LocalStorage (muss vorher gesetzt worden sein)
-    local unitId = LocalStorage and LocalStorage.cadUnitId or nil
+    -- Einheit-ID aus lokaler Variable (wird per NUI-Callback gesetzt)
+    local unitId = cadUnitId
     if not unitId then
-        QBCore.Functions.Notify('Keine CAD-Einheit aktiv. Bitte zuerst im CAD anmelden.', 'error')
+        QBCore.Functions.Notify('Keine CAD-Einheit aktiv. Bitte zuerst im CAD anmelden und eine Einheit erstellen.', 'error')
         return
     end
 
@@ -187,15 +188,31 @@ RegisterNUICallback('closeCAD', function(data, cb)
     cb({})
 end)
 
--- NUI-Callback: Unit-ID speichern
+-- NUI-Callback: Unit-ID speichern (Legacy: setUnitId)
 RegisterNUICallback('setUnitId', function(data, cb)
     if data and data.unitId then
-        LocalStorage = LocalStorage or {}
-        LocalStorage.cadUnitId = data.unitId
+        cadUnitId = data.unitId
     end
     if data and data.callsign then
         cadUnitCallsign = data.callsign
     end
+    cb({})
+end)
+
+-- NUI-Callback: Einheit aktiv setzen (setUnit)
+RegisterNUICallback('setUnit', function(data, cb)
+    cadUnitId = data and data.unitId or nil
+    cadUnitCallsign = data and data.callsign or nil
+    if cadUnitCallsign then
+        QBCore.Functions.Notify('[CAD] Einheit aktiv: ' .. tostring(cadUnitCallsign), 'success', 3000)
+    end
+    cb({})
+end)
+
+-- NUI-Callback: Einheit abgemeldet (clearUnit)
+RegisterNUICallback('clearUnit', function(data, cb)
+    cadUnitId = nil
+    cadUnitCallsign = nil
     cb({})
 end)
 
@@ -235,7 +252,7 @@ RegisterCommand('assignunit', function(source, args)
         return
     end
 
-    local unitId = LocalStorage and LocalStorage.cadUnitId or nil
+    local unitId = cadUnitId
     if not unitId then
         QBCore.Functions.Notify('Keine CAD-Einheit aktiv. Bitte zuerst im CAD anmelden.', 'error')
         return
